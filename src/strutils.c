@@ -12,7 +12,7 @@ char *decodeUnicodeBMP(const u8 *bytes, u64 length) {
   for (u64 i = 0; i < string_length; ++i) {
     decoded_string[i] = (bytes[2 * i] << 8) | bytes[2 * i + 1];
   }
-  decoded_string[string_length] = L'\0';
+  decoded_string[string_length] = '\0';
 
   return decoded_string;
 }
