@@ -8,76 +8,78 @@ Result BitstreamFromFile(Bitstream *self, const char *path) {
 }
 
 Result BitstreamSlice(Bitstream *self, Bitstream *src, u64 offset, u64 size) {
-  if (offset + size > src->size) { return Err(BitstreamEoF); }
+  if (offset + size > src->size) { return ERR(BitstreamEoF); }
   self->i = 0;
   self->size = size;
   self->buf = src->buf + offset;
-  return Ok;
+  return OK;
 }
 
+void BitstreamSkip(Bitstream *self, u64 bytes) { self->i += bytes; }
+
 Result BitstreamReadU8(Bitstream *self, u8 *buf) {
-  if (self->i++ == self->size) { return Err(BitstreamEoF); }
+  if (self->i++ == self->size) { return ERR(BitstreamEoF); }
   *buf = self->buf[self->i];
-  return Ok;
+  return OK;
 }
 
 #define READ_BYTES(s)                                                                                                  \
   u64 start = self->i;                                                                                                 \
   self->i += s;                                                                                                        \
-  if (self->i > self->size) { return Err(BitstreamEoF); }                                                              \
+  if (self->i > self->size) { return ERR(BitstreamEoF); }                                                              \
   memcpy(buf, &self->buf[start], s)
 
 Result BitstreamReadU16(Bitstream *self, u16 *buf) {
   READ_BYTES(sizeof(u16));
-  beswap(*buf, 16);
-  return Ok;
+  BE_SWAP(*buf, 16);
+  return OK;
 }
 
 Result BitstreamReadU32(Bitstream *self, u32 *buf) {
   READ_BYTES(sizeof(u32));
-  beswap(*buf, 32);
-  return Ok;
+  BE_SWAP(*buf, 32);
+  return OK;
 }
 
 Result BitstreamReadU64(Bitstream *self, u64 *buf) {
   READ_BYTES(sizeof(u64));
-  beswap(*buf, 64);
-  return Ok;
+  BE_SWAP(*buf, 64);
+  return OK;
 }
 
 Result BitstreamReadI32(Bitstream *self, i32 *buf) {
   READ_BYTES(sizeof(i32));
-  beswap(*buf, 32);
-  return Ok;
+  BE_SWAP(*buf, 32);
+  return OK;
 }
 
 Result BitstreamReadI64(Bitstream *self, i64 *buf) {
   READ_BYTES(sizeof(i64));
-  beswap(*buf, 64);
-  return Ok;
+  BE_SWAP(*buf, 64);
+  return OK;
 }
 
 Result BitstreamReadI16(Bitstream *self, i16 *buf) {
   READ_BYTES(sizeof(i16));
-  beswap(*buf, 16);
-  return Ok;
+  BE_SWAP(*buf, 16);
+  return OK;
 }
 
 Result BitstreamReadTag(Bitstream *self, Tag buf) {
   READ_BYTES(4);
   buf[4] = '\0';
-  return Ok;
+  return OK;
 }
 
 Result BitstreamReadStr(Bitstream *self, char *buf, u64 size) {
   READ_BYTES(size);
   buf[size] = '\0';
-  return Ok;
+  return OK;
 }
 
 Result BitstreamReadBuf(Bitstream *self, u8 *buf, u64 size) {
   READ_BYTES(size);
-  return Ok;
+  return OK;
 }
 
 void BitstreamDestroy(Bitstream *self) { free(self->buf); }

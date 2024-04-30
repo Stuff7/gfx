@@ -12,88 +12,34 @@ set logging file logs/gdb_output
 set logging enabled on
 show args
 
-break src/main.c:24
-break GDEFTableParse
-break GPOSTableParse
-break OS2TableParse
-break CmapTableParse
-break CvtTableParse
-break FpgmTableParse
-break GaspTableParse
-break HeadTableParse
-break LocaTableParse
-break MaxpTableParse
-break NameTableParse
+break TableDirParse
+break src/main.c:47
 
 run
 
-finish
-printf "\nGDEF\n"
-print gdef
-continue
+define print_struct
+  printf "\n%s\n", $arg0
+  print $arg1
+end
 
 finish
-printf "\nGPOS\n"
-print gpos
+print_struct "Table" table
 continue
 
-finish
-printf "\nGSUB\n"
-print gsub
-continue
-
-finish
-printf "\nOS/2\n"
-print os2
-continue
-
-finish
-printf "\ncmap\n"
-print cmap
+print_struct "GDEF" gdef
+print_struct "GPOS" gpos
+print_struct "GSUB" gsub
+print_struct "OS/2" os2
+print_struct "cmap" cmap
 print *cmap.encodingRecords@cmap.numTables
-continue
-
-finish
-printf "\ncvt\n"
-print cvt
+print_struct "cvt" cvt
 print *cvt.instructions@cvt.size
-continue
-
-finish
-printf "\nfpgm\n"
-print fpgm
+print_struct "fpgm" fpgm
 print *fpgm.instructions@fpgm.size
-continue
-
-finish
-printf "\ngasp\n"
-print gasp
+print_struct "gasp" gasp
 print *gasp.gaspRanges@gasp.numRanges
-continue
-
-finish
-printf "\nhead\n"
-print head
-continue
-
-finish
-printf "\nloca\n"
-print loca
-continue
-
-finish
-printf "\nmaxp\n"
-print maxp
-continue
-
-finish
-printf "\nname\n"
-print name
+print_struct "loca" loca
+print_struct "maxp" maxp
+print_struct "name" name
 print *name.nameRecord@name.count
 # print *name.strings@name.count
-continue
-
-printf "\nTable\n"
-print table
-print *table.tableRecords@table.numTables
-continue

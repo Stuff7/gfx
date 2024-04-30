@@ -19,8 +19,7 @@ typedef uint8_t u8;
 typedef float f32;
 typedef double f64;
 
-#define UNUSED(type) __attribute__((unused)) type _
-#define SET_UNUSED(type) __attribute__((unused)) type
+#define UNUSED(type) __attribute__((unused)) type
 
 typedef enum {
   Error_Ok = 0,
@@ -45,20 +44,20 @@ typedef struct {
 
 extern const char *RESULT_STR[10];
 
-#define Err3(error, context, freeFn)                                                                                   \
+#define ERR3(error, context, freeFn)                                                                                   \
   (Result) { .err = Error_##error, .ctx = context, .free = freeFn, .fileName = __FILE__, .line = __LINE__ }
-#define Err2(error, context) Err3(error, context, NULL)
-#define Err1(error) Err2(error, NULL)
-#define ErrN(_1, _2, _3, NAME, ...) NAME
+#define ERR2(error, context) ERR3(error, context, NULL)
+#define ERR1(error) ERR2(error, NULL)
+#define ERRN(_1, _2, _3, NAME, ...) NAME
 
-#define Err(...) ErrN(__VA_ARGS__, Err3, Err2, Err1)(__VA_ARGS__)
-#define Ok                                                                                                             \
+#define ERR(...) ERRN(__VA_ARGS__, ERR3, ERR2, ERR1)(__VA_ARGS__)
+#define OK                                                                                                             \
   (Result) { .err = Error_Ok, .fileName = __FILE__, .line = __LINE__ }
 
-#define Assert(assertion, ...)                                                                                         \
-  if (!(assertion)) { return Err(AssertionFail, __VA_ARGS__); }
+#define ASSERT(assertion, ...)                                                                                         \
+  if (!(assertion)) { return ERR(AssertionFail, __VA_ARGS__); }
 
-#define try(result)                                                                                                    \
+#define TRY(result)                                                                                                    \
   {                                                                                                                    \
     Result res = (result);                                                                                             \
     if (res.err) { return res; }                                                                                       \

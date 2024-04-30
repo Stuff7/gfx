@@ -1,6 +1,10 @@
 #include "math.h"
 
-Vec4 Vec4New(f32 x, f32 y, f32 z, f32 w) { return (Vec4){{x, y, z, w}}; }
+Vec4 Vec4New(f32 x, f32 y, f32 z, f32 w) {
+  return (Vec4){
+      {x, y, z, w}
+  };
+}
 
 Vec3 Vec3Sub(Vec3 a, Vec3 b) { return (Vec3){.x = a.x - b.x, .y = a.y - b.y, .z = a.z - b.z}; }
 
@@ -15,22 +19,26 @@ Vec3 Vec3ScalarMul(Vec3 v, float scalar) { return (Vec3){.x = v.x * scalar, .y =
 f32 Vec4Dot(Vec4 a, Vec4 b) { return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w; }
 
 Vec4 Vec4Mat4Multiply(Vec4 v, Mat4 m) {
-  return (Vec4){{
-      Vec4Dot(m.rows[0], v),
-      Vec4Dot(m.rows[1], v),
-      Vec4Dot(m.rows[2], v),
-      Vec4Dot(m.rows[3], v),
-  }};
+  return (Vec4){
+      {
+       Vec4Dot(m.rows[0], v),
+       Vec4Dot(m.rows[1], v),
+       Vec4Dot(m.rows[2], v),
+       Vec4Dot(m.rows[3], v),
+       }
+  };
 }
 
 f32 Vec3Dot(Vec3 a, Vec3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 
 Vec3 Vec3Mat4Multiply(Vec3 v, Mat4 m) {
-  return (Vec3){{
-      Vec3Dot(m.rows[0].xyz, v),
-      Vec3Dot(m.rows[1].xyz, v),
-      Vec3Dot(m.rows[2].xyz, v),
-  }};
+  return (Vec3){
+      {
+       Vec3Dot(m.rows[0].xyz, v),
+       Vec3Dot(m.rows[1].xyz, v),
+       Vec3Dot(m.rows[2].xyz, v),
+       }
+  };
 }
 
 Vec4 QuatNew(Vec3 euler_angles) {
@@ -59,17 +67,23 @@ Vec4 QuatMultiply(Vec4 q1, Vec4 q2) {
 }
 
 void QuatRotateX(Vec4 *quat, f32 angle) {
-  Vec4 rotation = Vec4Normalize((Vec4){{sinf(angle / 2), 0.0f, 0.0f, cosf(angle / 2)}});
+  Vec4 rotation = Vec4Normalize((Vec4){
+      {sinf(angle / 2), 0.0f, 0.0f, cosf(angle / 2)}
+  });
   *quat = QuatMultiply(*quat, rotation);
 }
 
 void QuatRotateY(Vec4 *quat, f32 angle) {
-  Vec4 rotation = Vec4Normalize((Vec4){{0.0f, sinf(angle / 2), 0.0f, cosf(angle / 2)}});
+  Vec4 rotation = Vec4Normalize((Vec4){
+      {0.0f, sinf(angle / 2), 0.0f, cosf(angle / 2)}
+  });
   *quat = QuatMultiply(*quat, rotation);
 }
 
 void QuatRotateZ(Vec4 *quat, f32 angle) {
-  Vec4 rotation = Vec4Normalize((Vec4){{0.0f, 0.0f, sinf(angle / 2), cosf(angle / 2)}});
+  Vec4 rotation = Vec4Normalize((Vec4){
+      {0.0f, 0.0f, sinf(angle / 2), cosf(angle / 2)}
+  });
   *quat = QuatMultiply(*quat, rotation);
 }
 
@@ -104,5 +118,5 @@ Mat4 QuatToMat4(Vec4 q) {
 }
 
 // clang-format off
-DefineVecXNormalize(Vec4, 4)
-DefineVecXNormalize(Vec3, 3)
+DEF_VEC_NORMALIZE(Vec4, 4)
+DEF_VEC_NORMALIZE(Vec3, 3)

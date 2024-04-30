@@ -21,15 +21,30 @@ Result StateCreateScene(State *state, const char *windowTitle) {
   for (int y = 0; y < SURF_SIZE; y += 1) {
     for (int x = 0; x < SURF_SIZE; x += 1) {
       ColorSet(&state->colors[i], RAND(0, 255), RAND(0, 255), RAND(0, 255));
-      TransformNew(&state->model[i], &state->matrices[i], (Vec3){{x, y, 0.f}}, (Vec3){{1.f, 1.f, 1.f}},
-                   (Vec3){{0.f, 0.f, 0.f}});
+      TransformNew(
+          &state->model[i],
+          &state->matrices[i],
+          (Vec3){
+              {x, y, 0.f}
+      },
+          (Vec3){{1.f, 1.f, 1.f}},
+          (Vec3){{0.f, 0.f, 0.f}}
+      );
       i++;
     }
   }
 
-  try(WindowNew(state, windowTitle, WIN_WIDTH, WIN_HEIGHT, (RenderCallback)draw, (InputCallback)processInput,
-                (ResizeCallback)resize, (CursorCallback)mouseInput));
-  try(ShaderNew(&state->shader, "shaders/vert.glsl", "shaders/frag.glsl"));
+  TRY(WindowNew(
+      state,
+      windowTitle,
+      WIN_WIDTH,
+      WIN_HEIGHT,
+      (RenderCallback)draw,
+      (InputCallback)processInput,
+      (ResizeCallback)resize,
+      (CursorCallback)mouseInput
+  ));
+  TRY(ShaderNew(&state->shader, "shaders/vert.glsl", "shaders/frag.glsl"));
 
   WindowSetCursor(state->cursor.x, state->cursor.y);
   WindowCaptureCursor((state->cursor.capture = true));
@@ -45,7 +60,7 @@ Result StateCreateScene(State *state, const char *windowTitle) {
   DataBufferSet(&state->renderer.models, CUBE_LEN, sizeof(Mat4), state->matrices);
   DataBufferSet(&state->renderer.colors, CUBE_LEN, sizeof(Color), state->colors);
 
-  return Ok;
+  return OK;
 }
 
 void StateDestroy(State *state) {

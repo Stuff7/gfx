@@ -15,9 +15,9 @@ Result readString(const char *path, char **out);
 
 /* ---------------- Bitstream ---------------- */
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-#define beswap(buf, size) buf = htobe##size(buf)
+#define BE_SWAP(buf, size) buf = htobe##size(buf)
 #elif
-#define beswap(buf, size)
+#define BE_SWAP(buf, size)
 #endif
 
 typedef struct {
@@ -28,6 +28,7 @@ typedef struct {
 
 Result BitstreamFromFile(Bitstream *self, const char *path);
 Result BitstreamSlice(Bitstream *self, Bitstream *src, u64 offset, u64 size);
+void BitstreamSkip(Bitstream *self, u64 bytes);
 void BitstreamDestroy(Bitstream *self);
 
 Result BitstreamReadU64(Bitstream *self, u64 *ret);
@@ -64,8 +65,16 @@ typedef struct {
 
 extern Window window;
 
-Result WindowNew(void *context, const char *title, int w, int h, RenderCallback update, InputCallback input,
-                 ResizeCallback resize, CursorCallback cursor);
+Result WindowNew(
+    void *context,
+    const char *title,
+    int w,
+    int h,
+    RenderCallback update,
+    InputCallback input,
+    ResizeCallback resize,
+    CursorCallback cursor
+);
 void WindowSetCursor(f64 x, f64 y);
 void WindowRun();
 void WindowCaptureCursor(bool capture);
@@ -99,8 +108,16 @@ typedef struct {
 
 void VAONew(uint *vao);
 void VAOBind(uint vao);
-void VAOAttrib(uint vao, Buffer *buf, int layout, int numVert, AttribType type, int normalized, int stride,
-               uintptr offset);
+void VAOAttrib(
+    uint vao,
+    Buffer *buf,
+    int layout,
+    int numVert,
+    AttribType type,
+    int normalized,
+    int stride,
+    uintptr offset
+);
 void VAOAttribDivisor(uint vao, Buffer *buf, int layout, int divisor);
 void VAODestroy(uint *vao);
 
@@ -129,8 +146,15 @@ void DataBufferSet(DataBuffer *dbo, uint len, uint instanceSize, void *data);
 void DataBufferSliceSet(DataBuffer *dbo, uint offset, uint size, void *data);
 
 /* ---------------- Renderer ---------------- */
-InstancedRenderer InstancedRendererNew(const void *vertices, uint verticesSize, const uint *indices, uint indicesSize,
-                                       uint indicesLen, uint maxInstances, bool dynamic);
+InstancedRenderer InstancedRendererNew(
+    const void *vertices,
+    uint verticesSize,
+    const uint *indices,
+    uint indicesSize,
+    uint indicesLen,
+    uint maxInstances,
+    bool dynamic
+);
 void InstancedRendererDraw(InstancedRenderer *self);
 void InstancedRendererDestroy(InstancedRenderer *self);
 

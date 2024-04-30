@@ -2,7 +2,7 @@
 
 void Mat4Identity(Mat4 *self) {
   // clang-format off
-  Mat4Init(self,
+  MAT4_INIT(self,
     1.f, 0.f, 0.f, 0.f,
     0.f, 1.f, 0.f, 0.f,
     0.f, 0.f, 1.f, 0.f,
@@ -17,7 +17,7 @@ void Mat4LookAt(Mat4 *self, Vec3 eye, Vec3 center, Vec3 up) {
   Vec3 u = Vec3Cross(s, f);
 
   // clang-format off
-    Mat4Init(self,
+    MAT4_INIT(self,
        s.x,  s.y,  s.z, -Vec3Dot(s, eye),
        u.x,  u.y,  u.z, -Vec3Dot(u, eye),
       -f.x, -f.y, -f.z,  Vec3Dot(f, eye),
@@ -31,7 +31,7 @@ void Mat4Perspective(Mat4 *self, f32 fov, f32 aspect, f32 near, f32 far) {
   f32 range = far - near;
 
   // clang-format off
-  Mat4Init(self,
+  MAT4_INIT(self,
     1.0f / (aspect * t),  0.0f,     0.0f,                  0.0f,
     0.0f,                 1.0f / t, 0.0f,                  0.0f,
     0.0f,                 0.0f,     -(far + near) / range, -2.0f * far * near / range,
@@ -42,7 +42,7 @@ void Mat4Perspective(Mat4 *self, f32 fov, f32 aspect, f32 near, f32 far) {
 
 void Mat4Scale(Mat4 *self, Vec3 scale) {
   // clang-format off
-  Mat4Init(self,
+  MAT4_INIT(self,
     scale.x, 0.f,     0.f,     0.f,
     0.f,     scale.y, 0.f,     0.f,
     0.f,     0.f,     scale.z, 0.f,

@@ -92,7 +92,7 @@ void QuatRotateY(Vec4 *quat, f32 angle);
 void QuatRotateZ(Vec4 *quat, f32 angle);
 Mat4 QuatToMat4(Vec4 q);
 
-#define DefineVecXNormalize(typ, size)                                                                                 \
+#define DEF_VEC_NORMALIZE(typ, size)                                                                                   \
   f32 typ##Length(typ v) {                                                                                             \
     f32 sum = 0;                                                                                                       \
     for (int i = 0; i < size; i++) {                                                                                   \
@@ -129,7 +129,7 @@ void Mat4Multiply(Mat4 *a, const Mat4 *b);
 void Mat4Print(const Mat4 *self);
 
 /* clang-format off */
-#define Mat4Init(\
+#define MAT4_INIT(\
   self,\
   v1x1, v1x2, v1x3, v1x4,\
   v2x1, v2x2, v2x3, v2x4,\

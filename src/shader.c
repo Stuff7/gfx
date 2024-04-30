@@ -4,7 +4,7 @@
 
 static Result compile(unsigned int *shader, int type, const char *path) {
   char *src;
-  try(readString(path, &src));
+  TRY(readString(path, &src));
 
   *shader = glCreateShader(type);
   glShaderSource(*shader, 1, (const char **)&src, NULL);
@@ -18,16 +18,16 @@ static Result compile(unsigned int *shader, int type, const char *path) {
     char *infoLog = malloc(512);
     glGetShaderInfoLog(*shader, 512, NULL, infoLog);
     glDeleteShader(*shader);
-    return Err(ShaderCompilation, infoLog, free);
+    return ERR(ShaderCompilation, infoLog, free);
   }
 
-  return Ok;
+  return OK;
 }
 
 Result ShaderNew(uint *shader, const char *vertPath, const char *fragPath) {
   uint vert, frag;
-  try(compile(&frag, GL_VERTEX_SHADER, vertPath));
-  try(compile(&vert, GL_FRAGMENT_SHADER, fragPath));
+  TRY(compile(&frag, GL_VERTEX_SHADER, vertPath));
+  TRY(compile(&vert, GL_FRAGMENT_SHADER, fragPath));
 
   *shader = glCreateProgram();
 
@@ -40,7 +40,7 @@ Result ShaderNew(uint *shader, const char *vertPath, const char *fragPath) {
   if (success == 0) {
     char *infoLog = malloc(512);
     glGetProgramInfoLog(*shader, 512, NULL, infoLog);
-    return Err(ShaderProgramLink, infoLog, free);
+    return ERR(ShaderProgramLink, infoLog, free);
   }
 
   glValidateProgram(*shader);
@@ -48,13 +48,13 @@ Result ShaderNew(uint *shader, const char *vertPath, const char *fragPath) {
   if (success == 0) {
     char *infoLog = malloc(512);
     glGetProgramInfoLog(*shader, 512, NULL, infoLog);
-    return Err(ShaderProgramValidation, infoLog, free);
+    return ERR(ShaderProgramValidation, infoLog, free);
   }
 
   glDeleteShader(vert);
   glDeleteShader(frag);
 
-  return Ok;
+  return OK;
 }
 
 void ShaderUse(uint shader) { glUseProgram(shader); }

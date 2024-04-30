@@ -6,13 +6,70 @@ typedef char Tag[5];
 
 Result BitstreamReadTag(Bitstream *self, Tag buf);
 
+typedef enum {
+  TableTag_GDEF = 0,
+  TableTag_GPOS,
+  TableTag_GSUB,
+  TableTag_OS2,
+  TableTag_Cmap,
+  TableTag_Cvt,
+  TableTag_Fpgm,
+  TableTag_Gasp,
+  TableTag_Head,
+  TableTag_Loca,
+  TableTag_Maxp,
+  TableTag_Name,
+
+  TableTag_Unknown
+} TableTag;
+
+Result TableTagParse(TableTag *tableTag, Bitstream *bs);
+
+typedef enum {
+  LocFormat_Short = 0,
+  LocFormat_Long = 1,
+} LocFormat;
+
 typedef struct {
-  Tag tag;
+  u16 majorVersion;
+  u16 minorVersion;
+  i32 fontRevision;
+  u32 checksumAdjustment;
+  u32 magicNumber;
+  u16 flags;
+  u16 unitsPerEm;
+  i64 created;
+  i64 modified;
+  i16 xMin;
+  i16 yMin;
+  i16 xMax;
+  i16 yMax;
+  u16 macStyle;
+  u16 lowestRecPPEM;
+  i16 fontDirectionHint;
+  LocFormat indexToLocFormat;
+  i16 glyphDataFormat;
+} HeadTable;
+
+Result HeadTableParse(HeadTable *self, Bitstream *bs);
+
+typedef struct {
   u32 checksum;
   u32 offset;
   u32 length;
 } TableRecord;
 Result TableRecordParse(TableRecord *record, Bitstream *bs);
+
+typedef struct {
+  u32 sfntVersion;
+  u16 numTables, searchRange, entrySelector, rangeShift;
+  TableRecord tableRecords[TableTag_Unknown];
+  HeadTable head;
+  Bitstream *bs;
+} TableDir;
+
+Result TableDirParse(TableDir *table, Bitstream *bs);
+Result TableDirGetTable(TableDir *self, TableTag tag, void *table);
 
 typedef struct {
   u16 majorVersion;
@@ -37,7 +94,7 @@ typedef struct {
   // Version 1.1
   u32 featureVariationsOffset;
 } GPOSTable;
-typedef GPOSTable GSUBHeader;
+typedef GPOSTable GSUBTable;
 Result GPOSTableParse(GPOSTable *self, Bitstream *bs);
 
 typedef struct {
@@ -83,8 +140,8 @@ typedef struct {
   // Version 5;
   u16 usLowerOpticalPointSize;
   u16 usUpperOpticalPointSize;
-} OS2;
-Result OS2TableParse(OS2 *self, Bitstream *bs);
+} OS2Table;
+Result OS2TableParse(OS2Table *self, Bitstream *bs);
 
 typedef struct {
   u16 platformID;
@@ -150,34 +207,6 @@ typedef struct {
 
 Result MaxpTableParse(MaxpTable *self, Bitstream *bs);
 
-typedef enum {
-  LocFormat_Short = 0,
-  LocFormat_Long = 1,
-} LocFormat;
-
-typedef struct {
-  u16 majorVersion;
-  u16 minorVersion;
-  i32 fontRevision;
-  u32 checksumAdjustment;
-  u32 magicNumber;
-  u16 flags;
-  u16 unitsPerEm;
-  i64 created;
-  i64 modified;
-  i16 xMin;
-  i16 yMin;
-  i16 xMax;
-  i16 yMax;
-  u16 macStyle;
-  u16 lowestRecPPEM;
-  i16 fontDirectionHint;
-  LocFormat indexToLocFormat;
-  i16 glyphDataFormat;
-} HeadTable;
-
-Result HeadTableParse(HeadTable *self, Bitstream *bs);
-
 typedef struct {
   u32 size;
   void *offsets;
@@ -217,12 +246,3 @@ typedef struct {
 Result NameTableParse(NameTable *self, Bitstream *bs);
 
 void NameTableFree(NameTable *self);
-
-typedef struct {
-  u32 sfntVersion;
-  u16 numTables, searchRange, entrySelector, rangeShift;
-  TableRecord *tableRecords;
-} TableDir;
-
-Result TableDirParse(TableDir *table, Bitstream *bs);
-void TableDirDestroy(TableDir *table);

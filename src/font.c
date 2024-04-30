@@ -3,363 +3,394 @@
 
 #define MAX_ALLOC_SIZE 100000
 
-Result TableDirParse(TableDir *table, Bitstream *bs) {
-  try(BitstreamReadU32(bs, &table->sfntVersion));
-  try(BitstreamReadU16(bs, &table->numTables));
-  try(BitstreamReadU16(bs, &table->searchRange));
-  try(BitstreamReadU16(bs, &table->entrySelector));
-  try(BitstreamReadU16(bs, &table->rangeShift));
+#define ASSERT_ALLOC(typ, num, table)                                                                                  \
+  {                                                                                                                    \
+    uint size = num * sizeof(typ);                                                                                     \
+    ASSERT(size < MAX_ALLOC_SIZE, #table " is too large");                                                             \
+    table = malloc(size);                                                                                              \
+  }
 
-  uint size = table->numTables * sizeof(TableRecord);
-  Assert(size < MAX_ALLOC_SIZE, "Cmap numTables is too large");
-  table->tableRecords = malloc(size);
-  HeadTable head;
-  for (int i = 0; i < table->numTables; i++) {
-    TableRecord *record = &table->tableRecords[i];
-    try(TableRecordParse(record, bs));
-    Bitstream header;
-    try(BitstreamSlice(&header, bs, record->offset, record->length));
+Result TableDirParse(TableDir *self, Bitstream *bs) {
+  self->bs = bs;
+  TRY(BitstreamReadU32(self->bs, &self->sfntVersion));
+  TRY(BitstreamReadU16(self->bs, &self->numTables));
+  TRY(BitstreamReadU16(self->bs, &self->searchRange));
+  TRY(BitstreamReadU16(self->bs, &self->entrySelector));
+  TRY(BitstreamReadU16(self->bs, &self->rangeShift));
 
-    if (streq(record->tag, "GDEF")) {
-      GDEFTable gdef;
-      try(GDEFTableParse(&gdef, &header));
-    } else if (streq(record->tag, "GPOS")) {
-      GPOSTable gpos;
-      try(GPOSTableParse(&gpos, &header));
-    } else if (streq(record->tag, "GSUB")) {
-      GSUBHeader gsub;
-      try(GPOSTableParse(&gsub, &header));
-    } else if (streq(record->tag, "OS/2")) {
-      OS2 os2;
-      try(OS2TableParse(&os2, &header));
-    } else if (streq(record->tag, "cmap")) {
-      CmapTable cmap;
-      try(CmapTableParse(&cmap, &header));
-      CmapTableFree(&cmap);
-    } else if (streq(record->tag, "cvt ")) {
-      CvtTable cvt;
-      try(CvtTableParse(&cvt, &header));
-      CvtTableFree(&cvt);
-    } else if (streq(record->tag, "fpgm")) {
-      FpgmTable fpgm;
-      try(FpgmTableParse(&fpgm, &header));
-      FpgmTableFree(&fpgm);
-    } else if (streq(record->tag, "gasp")) {
-      GaspTable gasp;
-      try(GaspTableParse(&gasp, &header));
-      GaspTableFree(&gasp);
-    } else if (streq(record->tag, "maxp")) {
-      MaxpTable maxp;
-      try(MaxpTableParse(&maxp, &header));
-    } else if (streq(record->tag, "head")) {
-      try(HeadTableParse(&head, &header));
-    } else if (streq(record->tag, "loca")) {
-      LocaTable loca;
-      try(LocaTableParse(&loca, &header, &head));
-      LocaTableFree(&loca);
-    } else if (streq(record->tag, "name")) {
-      NameTable name;
-      try(NameTableParse(&name, &header));
-      NameTableFree(&name);
+  for (int i = 0; i < self->numTables; i++) {
+    TableTag tag;
+    TRY(TableTagParse(&tag, self->bs));
+    if (tag == TableTag_Unknown) {
+      BitstreamSkip(self->bs, sizeof(TableRecord));
+      continue;
+    }
+    TableRecord *record = &self->tableRecords[tag];
+    TRY(TableRecordParse(record, self->bs));
+    if (tag == TableTag_Head) {
+      Bitstream header;
+      TRY(BitstreamSlice(&header, self->bs, record->offset, record->length));
+      HeadTableParse(&self->head, &header);
     }
   }
 
-  return Ok;
+  return OK;
+}
+
+Result TableDirGetTable(TableDir *self, TableTag tag, void *table) {
+  Bitstream bs;
+  TableRecord *record = &self->tableRecords[tag];
+  TRY(BitstreamSlice(&bs, self->bs, record->offset, record->length));
+
+  switch (tag) {
+    case TableTag_GDEF:
+      TRY(GDEFTableParse(table, &bs));
+      break;
+    case TableTag_GPOS:
+      TRY(GPOSTableParse(table, &bs));
+      break;
+    case TableTag_GSUB:
+      TRY(GPOSTableParse(table, &bs));
+      break;
+    case TableTag_OS2:
+      TRY(OS2TableParse(table, &bs));
+      break;
+    case TableTag_Cmap:
+      TRY(CmapTableParse(table, &bs));
+      break;
+    case TableTag_Cvt:
+      TRY(CvtTableParse(table, &bs));
+      break;
+    case TableTag_Fpgm:
+      TRY(FpgmTableParse(table, &bs));
+      break;
+    case TableTag_Gasp:
+      TRY(GaspTableParse(table, &bs));
+      break;
+    case TableTag_Loca:
+      TRY(LocaTableParse(table, &bs, &self->head));
+      break;
+    case TableTag_Maxp:
+      TRY(MaxpTableParse(table, &bs));
+      break;
+    case TableTag_Name:
+      TRY(NameTableParse(table, &bs));
+      break;
+    default:
+      break;
+  }
+
+  return OK;
+}
+
+Result TableTagParse(TableTag *tableTag, Bitstream *bs) {
+  Tag tag;
+  TRY(BitstreamReadTag(bs, tag));
+
+  if (streq(tag, "GDEF")) {
+    *tableTag = TableTag_GDEF;
+  } else if (streq(tag, "GPOS")) {
+    *tableTag = TableTag_GPOS;
+  } else if (streq(tag, "GSUB")) {
+    *tableTag = TableTag_GSUB;
+  } else if (streq(tag, "OS/2")) {
+    *tableTag = TableTag_OS2;
+  } else if (streq(tag, "cmap")) {
+    *tableTag = TableTag_Cmap;
+  } else if (streq(tag, "cvt ")) {
+    *tableTag = TableTag_Cvt;
+  } else if (streq(tag, "fpgm")) {
+    *tableTag = TableTag_Fpgm;
+  } else if (streq(tag, "gasp")) {
+    *tableTag = TableTag_Gasp;
+  } else if (streq(tag, "head")) {
+    *tableTag = TableTag_Head;
+  } else if (streq(tag, "loca")) {
+    *tableTag = TableTag_Loca;
+  } else if (streq(tag, "maxp")) {
+    *tableTag = TableTag_Maxp;
+  } else if (streq(tag, "name")) {
+    *tableTag = TableTag_Name;
+  } else {
+    printf("\x1b[38;5;190mUnknown table record %s\x1b[0m\n", tag);
+    *tableTag = TableTag_Unknown;
+  }
+
+  return OK;
 }
 
 Result TableRecordParse(TableRecord *record, Bitstream *bs) {
-  try(BitstreamReadTag(bs, record->tag));
-  try(BitstreamReadU32(bs, &record->checksum));
-  try(BitstreamReadU32(bs, &record->offset));
-  try(BitstreamReadU32(bs, &record->length));
-  return Ok;
+  TRY(BitstreamReadU32(bs, &record->checksum));
+  TRY(BitstreamReadU32(bs, &record->offset));
+  TRY(BitstreamReadU32(bs, &record->length));
+  return OK;
 }
 
-void TableDirDestroy(TableDir *table) { free(table->tableRecords); }
-
 Result GDEFTableParse(GDEFTable *self, Bitstream *bs) {
-  try(BitstreamReadU16(bs, &self->majorVersion));
-  try(BitstreamReadU16(bs, &self->minorVersion));
-  try(BitstreamReadU16(bs, &self->glyphClassDefOffset));
-  try(BitstreamReadU16(bs, &self->attachListOffset));
-  try(BitstreamReadU16(bs, &self->ligCaretListOffset));
-  try(BitstreamReadU16(bs, &self->markAttachClassDefOffset));
+  TRY(BitstreamReadU16(bs, &self->majorVersion));
+  TRY(BitstreamReadU16(bs, &self->minorVersion));
+  TRY(BitstreamReadU16(bs, &self->glyphClassDefOffset));
+  TRY(BitstreamReadU16(bs, &self->attachListOffset));
+  TRY(BitstreamReadU16(bs, &self->ligCaretListOffset));
+  TRY(BitstreamReadU16(bs, &self->markAttachClassDefOffset));
 
   switch (self->minorVersion) {
     case 2:
-      try(BitstreamReadU16(bs, &self->markGlyphSetsDefOffset));
+      TRY(BitstreamReadU16(bs, &self->markGlyphSetsDefOffset));
       break;
     case 3:
-      try(BitstreamReadU16(bs, &self->itemVarStoreOffset));
+      TRY(BitstreamReadU16(bs, &self->itemVarStoreOffset));
       break;
   }
-  return Ok;
+  return OK;
 }
 
 Result GPOSTableParse(GPOSTable *self, Bitstream *bs) {
-  try(BitstreamReadU16(bs, &self->majorVersion));
-  try(BitstreamReadU16(bs, &self->minorVersion));
-  try(BitstreamReadU16(bs, &self->scriptListOffset));
-  try(BitstreamReadU16(bs, &self->featureListOffset));
-  try(BitstreamReadU16(bs, &self->lookupListOffset));
+  TRY(BitstreamReadU16(bs, &self->majorVersion));
+  TRY(BitstreamReadU16(bs, &self->minorVersion));
+  TRY(BitstreamReadU16(bs, &self->scriptListOffset));
+  TRY(BitstreamReadU16(bs, &self->featureListOffset));
+  TRY(BitstreamReadU16(bs, &self->lookupListOffset));
 
-  if (self->minorVersion == 1) { try(BitstreamReadU32(bs, &self->featureVariationsOffset)); }
-  return Ok;
+  if (self->minorVersion == 1) { TRY(BitstreamReadU32(bs, &self->featureVariationsOffset)); }
+  return OK;
 }
 
-Result OS2TableParse(OS2 *self, Bitstream *bs) {
-  try(BitstreamReadU16(bs, &self->version));
-  try(BitstreamReadI16(bs, &self->xAvgCharWidth));
-  try(BitstreamReadU16(bs, &self->usWeightClass));
-  try(BitstreamReadU16(bs, &self->usWidthClass));
-  try(BitstreamReadU16(bs, &self->fsType));
-  try(BitstreamReadI16(bs, &self->ySubscriptXSize));
-  try(BitstreamReadI16(bs, &self->ySubscriptYSize));
-  try(BitstreamReadI16(bs, &self->ySubscriptXOffset));
-  try(BitstreamReadI16(bs, &self->ySubscriptYOffset));
-  try(BitstreamReadI16(bs, &self->ySuperscriptXSize));
-  try(BitstreamReadI16(bs, &self->ySuperscriptYSize));
-  try(BitstreamReadI16(bs, &self->ySuperscriptXOffset));
-  try(BitstreamReadI16(bs, &self->ySuperscriptYOffset));
-  try(BitstreamReadI16(bs, &self->yStrikeoutSize));
-  try(BitstreamReadI16(bs, &self->yStrikeoutPosition));
-  try(BitstreamReadI16(bs, &self->sFamilyClass));
-  try(BitstreamReadBuf(bs, self->panose, 10));
-  try(BitstreamReadU32(bs, &self->ulUnicodeRange1));
-  try(BitstreamReadU32(bs, &self->ulUnicodeRange2));
-  try(BitstreamReadU32(bs, &self->ulUnicodeRange3));
-  try(BitstreamReadU32(bs, &self->ulUnicodeRange4));
-  try(BitstreamReadTag(bs, self->achVendID));
-  try(BitstreamReadU16(bs, &self->fsSelection));
-  try(BitstreamReadU16(bs, &self->usFirstCharIndex));
-  try(BitstreamReadU16(bs, &self->usLastCharIndex));
-  try(BitstreamReadI16(bs, &self->sTypoAscender));
-  try(BitstreamReadI16(bs, &self->sTypoDescender));
-  try(BitstreamReadI16(bs, &self->sTypoLineGap));
-  try(BitstreamReadU16(bs, &self->usWinAscent));
-  try(BitstreamReadU16(bs, &self->usWinDescent));
+Result OS2TableParse(OS2Table *self, Bitstream *bs) {
+  TRY(BitstreamReadU16(bs, &self->version));
+  TRY(BitstreamReadI16(bs, &self->xAvgCharWidth));
+  TRY(BitstreamReadU16(bs, &self->usWeightClass));
+  TRY(BitstreamReadU16(bs, &self->usWidthClass));
+  TRY(BitstreamReadU16(bs, &self->fsType));
+  TRY(BitstreamReadI16(bs, &self->ySubscriptXSize));
+  TRY(BitstreamReadI16(bs, &self->ySubscriptYSize));
+  TRY(BitstreamReadI16(bs, &self->ySubscriptXOffset));
+  TRY(BitstreamReadI16(bs, &self->ySubscriptYOffset));
+  TRY(BitstreamReadI16(bs, &self->ySuperscriptXSize));
+  TRY(BitstreamReadI16(bs, &self->ySuperscriptYSize));
+  TRY(BitstreamReadI16(bs, &self->ySuperscriptXOffset));
+  TRY(BitstreamReadI16(bs, &self->ySuperscriptYOffset));
+  TRY(BitstreamReadI16(bs, &self->yStrikeoutSize));
+  TRY(BitstreamReadI16(bs, &self->yStrikeoutPosition));
+  TRY(BitstreamReadI16(bs, &self->sFamilyClass));
+  TRY(BitstreamReadBuf(bs, self->panose, 10));
+  TRY(BitstreamReadU32(bs, &self->ulUnicodeRange1));
+  TRY(BitstreamReadU32(bs, &self->ulUnicodeRange2));
+  TRY(BitstreamReadU32(bs, &self->ulUnicodeRange3));
+  TRY(BitstreamReadU32(bs, &self->ulUnicodeRange4));
+  TRY(BitstreamReadTag(bs, self->achVendID));
+  TRY(BitstreamReadU16(bs, &self->fsSelection));
+  TRY(BitstreamReadU16(bs, &self->usFirstCharIndex));
+  TRY(BitstreamReadU16(bs, &self->usLastCharIndex));
+  TRY(BitstreamReadI16(bs, &self->sTypoAscender));
+  TRY(BitstreamReadI16(bs, &self->sTypoDescender));
+  TRY(BitstreamReadI16(bs, &self->sTypoLineGap));
+  TRY(BitstreamReadU16(bs, &self->usWinAscent));
+  TRY(BitstreamReadU16(bs, &self->usWinDescent));
   switch (self->version) {
     case 1:
-      try(BitstreamReadU32(bs, &self->ulCodePageRange1));
-      try(BitstreamReadU32(bs, &self->ulCodePageRange2));
+      TRY(BitstreamReadU32(bs, &self->ulCodePageRange1));
+      TRY(BitstreamReadU32(bs, &self->ulCodePageRange2));
       break;
     case 2:
     case 3:
     case 4:
-      try(BitstreamReadI16(bs, &self->sxHeight));
-      try(BitstreamReadI16(bs, &self->sCapHeight));
-      try(BitstreamReadU16(bs, &self->usDefaultChar));
-      try(BitstreamReadU16(bs, &self->usBreakChar));
-      try(BitstreamReadU16(bs, &self->usMaxContext));
+      TRY(BitstreamReadI16(bs, &self->sxHeight));
+      TRY(BitstreamReadI16(bs, &self->sCapHeight));
+      TRY(BitstreamReadU16(bs, &self->usDefaultChar));
+      TRY(BitstreamReadU16(bs, &self->usBreakChar));
+      TRY(BitstreamReadU16(bs, &self->usMaxContext));
       break;
     case 5:
-      try(BitstreamReadU16(bs, &self->usLowerOpticalPointSize));
-      try(BitstreamReadU16(bs, &self->usUpperOpticalPointSize));
+      TRY(BitstreamReadU16(bs, &self->usLowerOpticalPointSize));
+      TRY(BitstreamReadU16(bs, &self->usUpperOpticalPointSize));
       break;
   }
 
-  return Ok;
+  return OK;
 }
 
 Result CmapTableParse(CmapTable *self, Bitstream *bs) {
-  try(BitstreamReadU16(bs, &self->version));
-  try(BitstreamReadU16(bs, &self->numTables));
+  TRY(BitstreamReadU16(bs, &self->version));
+  TRY(BitstreamReadU16(bs, &self->numTables));
 
-  uint size = self->numTables * sizeof(EncodingRecord);
-  Assert(size < MAX_ALLOC_SIZE, "Cmap numTables is too large");
-  self->encodingRecords = malloc(size);
+  ASSERT_ALLOC(EncodingRecord, self->numTables, self->encodingRecords);
   for (int i = 0; i < self->numTables; i++) {
     EncodingRecordParse(&self->encodingRecords[i], bs);
   }
 
-  return Ok;
+  return OK;
 }
 
 Result EncodingRecordParse(EncodingRecord *self, Bitstream *bs) {
-  try(BitstreamReadU16(bs, &self->platformID));
-  try(BitstreamReadU16(bs, &self->encodingID));
-  try(BitstreamReadU32(bs, &self->subtableOffset));
+  TRY(BitstreamReadU16(bs, &self->platformID));
+  TRY(BitstreamReadU16(bs, &self->encodingID));
+  TRY(BitstreamReadU32(bs, &self->subtableOffset));
 
-  return Ok;
+  return OK;
 }
 
 void CmapTableFree(CmapTable *self) { free(self->encodingRecords); }
 
 Result CvtTableParse(CvtTable *self, Bitstream *bs) {
-  self->size = bs->size / 2;
-  uint size = self->size * sizeof(i16);
-  Assert(size < MAX_ALLOC_SIZE, "Cvt instructions size is too large");
-  self->instructions = malloc(size);
+  self->size = bs->size / sizeof(i16);
+  ASSERT_ALLOC(i16, self->size, self->instructions);
   for (u32 i = 0; i < self->size; i++) {
-    try(BitstreamReadI16(bs, &self->instructions[i]));
+    TRY(BitstreamReadI16(bs, &self->instructions[i]));
   }
 
-  return Ok;
+  return OK;
 }
 
 void CvtTableFree(CvtTable *self) { free(self->instructions); }
 
 Result FpgmTableParse(FpgmTable *self, Bitstream *bs) {
   self->size = bs->size;
-  Assert(self->size < MAX_ALLOC_SIZE, "Fpgm instructions size is too large");
-  self->instructions = malloc(self->size * sizeof(u8));
-  try(BitstreamReadBuf(bs, self->instructions, self->size));
+  ASSERT_ALLOC(u8, self->size, self->instructions);
+  TRY(BitstreamReadBuf(bs, self->instructions, self->size));
 
-  return Ok;
+  return OK;
 }
 
 void FpgmTableFree(FpgmTable *self) { free(self->instructions); }
 
 Result GaspTableParse(GaspTable *self, Bitstream *bs) {
-  try(BitstreamReadU16(bs, &self->version));
-  try(BitstreamReadU16(bs, &self->numRanges));
+  TRY(BitstreamReadU16(bs, &self->version));
+  TRY(BitstreamReadU16(bs, &self->numRanges));
 
-  uint size = self->numRanges * sizeof(GaspRange);
-  Assert(size < MAX_ALLOC_SIZE, "Gasp numRanges is too large");
-  self->gaspRanges = malloc(size);
+  ASSERT_ALLOC(GaspRange, self->numRanges, self->gaspRanges);
   for (int i = 0; i < self->numRanges; i++) {
     GaspRangeParse(&self->gaspRanges[i], bs);
   }
 
-  return Ok;
+  return OK;
 }
 
 Result GaspRangeParse(GaspRange *self, Bitstream *bs) {
-  try(BitstreamReadU16(bs, &self->rangeMaxPPEM));
-  try(BitstreamReadU16(bs, &self->rangeGaspBehavior));
+  TRY(BitstreamReadU16(bs, &self->rangeMaxPPEM));
+  TRY(BitstreamReadU16(bs, &self->rangeGaspBehavior));
 
-  return Ok;
+  return OK;
 }
 
 void GaspTableFree(GaspTable *self) { free(self->gaspRanges); }
 
 Result MaxpTableParse(MaxpTable *self, Bitstream *bs) {
-  try(BitstreamReadU32(bs, &self->version));
-  try(BitstreamReadU16(bs, &self->numGlyphs));
+  TRY(BitstreamReadU32(bs, &self->version));
+  TRY(BitstreamReadU16(bs, &self->numGlyphs));
 
   if (self->version == 0x00010000) {
-    try(BitstreamReadU16(bs, &self->maxPoints));
-    try(BitstreamReadU16(bs, &self->maxContours));
-    try(BitstreamReadU16(bs, &self->maxCompositePoints));
-    try(BitstreamReadU16(bs, &self->maxCompositeContours));
-    try(BitstreamReadU16(bs, &self->maxZones));
-    try(BitstreamReadU16(bs, &self->maxTwilightPoints));
-    try(BitstreamReadU16(bs, &self->maxStorage));
-    try(BitstreamReadU16(bs, &self->maxFunctionDefs));
-    try(BitstreamReadU16(bs, &self->maxInstructionDefs));
-    try(BitstreamReadU16(bs, &self->maxStackElements));
-    try(BitstreamReadU16(bs, &self->maxSizeOfInstructions));
-    try(BitstreamReadU16(bs, &self->maxComponentElements));
-    try(BitstreamReadU16(bs, &self->maxComponentDepth));
+    TRY(BitstreamReadU16(bs, &self->maxPoints));
+    TRY(BitstreamReadU16(bs, &self->maxContours));
+    TRY(BitstreamReadU16(bs, &self->maxCompositePoints));
+    TRY(BitstreamReadU16(bs, &self->maxCompositeContours));
+    TRY(BitstreamReadU16(bs, &self->maxZones));
+    TRY(BitstreamReadU16(bs, &self->maxTwilightPoints));
+    TRY(BitstreamReadU16(bs, &self->maxStorage));
+    TRY(BitstreamReadU16(bs, &self->maxFunctionDefs));
+    TRY(BitstreamReadU16(bs, &self->maxInstructionDefs));
+    TRY(BitstreamReadU16(bs, &self->maxStackElements));
+    TRY(BitstreamReadU16(bs, &self->maxSizeOfInstructions));
+    TRY(BitstreamReadU16(bs, &self->maxComponentElements));
+    TRY(BitstreamReadU16(bs, &self->maxComponentDepth));
   }
 
-  return Ok;
+  return OK;
 }
 
 Result HeadTableParse(HeadTable *self, Bitstream *bs) {
-  try(BitstreamReadU16(bs, &self->majorVersion));
-  try(BitstreamReadU16(bs, &self->minorVersion));
-  try(BitstreamReadI32(bs, &self->fontRevision));
-  try(BitstreamReadU32(bs, &self->checksumAdjustment));
-  try(BitstreamReadU32(bs, &self->magicNumber));
-  try(BitstreamReadU16(bs, &self->flags));
-  try(BitstreamReadU16(bs, &self->unitsPerEm));
-  try(BitstreamReadI64(bs, &self->created));
-  try(BitstreamReadI64(bs, &self->modified));
-  try(BitstreamReadI16(bs, &self->xMin));
-  try(BitstreamReadI16(bs, &self->yMin));
-  try(BitstreamReadI16(bs, &self->xMax));
-  try(BitstreamReadI16(bs, &self->yMax));
-  try(BitstreamReadU16(bs, &self->macStyle));
-  try(BitstreamReadU16(bs, &self->lowestRecPPEM));
-  try(BitstreamReadI16(bs, &self->fontDirectionHint));
+  TRY(BitstreamReadU16(bs, &self->majorVersion));
+  TRY(BitstreamReadU16(bs, &self->minorVersion));
+  TRY(BitstreamReadI32(bs, &self->fontRevision));
+  TRY(BitstreamReadU32(bs, &self->checksumAdjustment));
+  TRY(BitstreamReadU32(bs, &self->magicNumber));
+  TRY(BitstreamReadU16(bs, &self->flags));
+  TRY(BitstreamReadU16(bs, &self->unitsPerEm));
+  TRY(BitstreamReadI64(bs, &self->created));
+  TRY(BitstreamReadI64(bs, &self->modified));
+  TRY(BitstreamReadI16(bs, &self->xMin));
+  TRY(BitstreamReadI16(bs, &self->yMin));
+  TRY(BitstreamReadI16(bs, &self->xMax));
+  TRY(BitstreamReadI16(bs, &self->yMax));
+  TRY(BitstreamReadU16(bs, &self->macStyle));
+  TRY(BitstreamReadU16(bs, &self->lowestRecPPEM));
+  TRY(BitstreamReadI16(bs, &self->fontDirectionHint));
   i16 locFormat;
-  try(BitstreamReadI16(bs, &locFormat));
+  TRY(BitstreamReadI16(bs, &locFormat));
   self->indexToLocFormat = (LocFormat)locFormat;
-  try(BitstreamReadI16(bs, &self->glyphDataFormat));
+  TRY(BitstreamReadI16(bs, &self->glyphDataFormat));
 
-  return Ok;
+  return OK;
 }
 
 Result LocaTableParse(LocaTable *self, Bitstream *bs, const HeadTable *head) {
-  uint size;
   switch (head->indexToLocFormat) {
     case LocFormat_Short: // Offset16
       self->size = bs->size / sizeof(u16);
-      size = self->size * sizeof(u16);
-      Assert(size < MAX_ALLOC_SIZE, "Loca offsets size is too large");
-      self->offsets = malloc(size);
+      ASSERT_ALLOC(u16, self->size, self->offsets);
       for (u32 i = 0; i < self->size; i++) {
-        try(BitstreamReadU16(bs, &((u16 *)self->offsets)[i]));
+        TRY(BitstreamReadU16(bs, &((u16 *)self->offsets)[i]));
       }
       break;
     case LocFormat_Long: // Offset32
       self->size = bs->size / sizeof(u32);
-      size = self->size * sizeof(u32);
-      Assert(size < MAX_ALLOC_SIZE, "Loca offsets size is too large");
-      self->offsets = malloc(size);
+      ASSERT_ALLOC(u32, self->size, self->offsets);
       for (u32 i = 0; i < self->size; i++) {
-        try(BitstreamReadU32(bs, &((u32 *)self->offsets)[i]));
+        TRY(BitstreamReadU32(bs, &((u32 *)self->offsets)[i]));
       }
       break;
   }
 
-  return Ok;
+  return OK;
 }
 
 Result NameRecordParse(NameRecord *self, Bitstream *bs) {
-  try(BitstreamReadU16(bs, &self->platformID));
-  try(BitstreamReadU16(bs, &self->encodingID));
-  try(BitstreamReadU16(bs, &self->languageID));
-  try(BitstreamReadU16(bs, &self->nameID));
-  try(BitstreamReadU16(bs, &self->length));
-  try(BitstreamReadU16(bs, &self->stringOffset));
+  TRY(BitstreamReadU16(bs, &self->platformID));
+  TRY(BitstreamReadU16(bs, &self->encodingID));
+  TRY(BitstreamReadU16(bs, &self->languageID));
+  TRY(BitstreamReadU16(bs, &self->nameID));
+  TRY(BitstreamReadU16(bs, &self->length));
+  TRY(BitstreamReadU16(bs, &self->stringOffset));
 
-  return Ok;
+  return OK;
 }
 
 Result LangTagRecordParse(LangTagRecord *self, Bitstream *bs) {
-  try(BitstreamReadU16(bs, &self->length));
-  try(BitstreamReadU16(bs, &self->langTagOffset));
+  TRY(BitstreamReadU16(bs, &self->length));
+  TRY(BitstreamReadU16(bs, &self->langTagOffset));
 
-  return Ok;
+  return OK;
 }
 
 Result NameTableParse(NameTable *self, Bitstream *bs) {
-  try(BitstreamReadU16(bs, &self->version));
-  try(BitstreamReadU16(bs, &self->count));
-  try(BitstreamReadU16(bs, &self->storageOffset));
+  TRY(BitstreamReadU16(bs, &self->version));
+  TRY(BitstreamReadU16(bs, &self->count));
+  TRY(BitstreamReadU16(bs, &self->storageOffset));
 
-  uint size = self->count * sizeof(NameRecord);
-  Assert(size < MAX_ALLOC_SIZE, "Name table nameRecords is too large");
-  self->nameRecord = malloc(size);
+  ASSERT_ALLOC(NameRecord, self->count, self->nameRecord);
   for (int i = 0; i < self->count; i++) {
-    try(NameRecordParse(&self->nameRecord[i], bs));
+    TRY(NameRecordParse(&self->nameRecord[i], bs));
   }
 
   if (self->version == 1) {
-    try(BitstreamReadU16(bs, &self->langTagCount));
-    uint size = self->langTagCount * sizeof(NameRecord);
-    Assert(size < MAX_ALLOC_SIZE, "Name table langTagRecord is too large");
-    self->langTagRecord = malloc(size);
+    TRY(BitstreamReadU16(bs, &self->langTagCount));
+    ASSERT_ALLOC(LangTagRecord, self->langTagCount, self->langTagRecord);
     for (int i = 0; i < self->langTagCount; i++) {
-      try(LangTagRecordParse(&self->langTagRecord[i], bs));
+      TRY(LangTagRecordParse(&self->langTagRecord[i], bs));
     }
   }
 
-  // size = self->count * sizeof(char *);
-  // Assert(size < MAX_ALLOC_SIZE, "Name table strings is too large");
-  // self->strings = malloc(size);
+  // ASSERT_ALLOC(char *, self->count, self->strings);
   // NameRecord *record;
   // Bitstream data;
   // for (int i = 0; i < self->count; i++) {
   //   record = &self->nameRecord[i];
   //   BitstreamSlice(&data, bs, self->storageOffset + record->stringOffset, record->length);
   //   self->strings[i] = malloc(record->length + 1);
-  //   try(BitstreamReadStr(&data, self->strings[i], record->length));
+  //   TRY(BitstreamReadStr(&data, self->strings[i], record->length));
   // }
 
-  return Ok;
+  return OK;
 }
 
 void NameTableFree(NameTable *self) {

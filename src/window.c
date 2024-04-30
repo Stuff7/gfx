@@ -2,15 +2,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void cursor_callback(SET_UNUSED(GLFWwindow *) _1, f64 x, f64 y) { window.cursor(window.context, x, y); }
+void cursor_callback(UNUSED(GLFWwindow *) _1, f64 x, f64 y) { window.cursor(window.context, x, y); }
 
-void input_callback(SET_UNUSED(GLFWwindow *) _1, int key, SET_UNUSED(int) _2, int action, SET_UNUSED(int) _3) {
+void input_callback(UNUSED(GLFWwindow *) _1, int key, UNUSED(int) _2, int action, UNUSED(int) _3) {
   window.input(window.context, key, action);
 }
 
 void error_callback(int error, const char *description) { fprintf(stderr, "[GLFW] (%d) %s\n", error, description); }
 
-void framebuffer_size_callback(UNUSED(GLFWwindow *), int width, int height) {
+void framebuffer_size_callback(UNUSED(GLFWwindow *) _, int width, int height) {
   glViewport(0, 0, width, height);
   window.width = width;
   window.height = height;
@@ -47,8 +47,16 @@ void WindowRun() {
 
 Window window;
 
-Result WindowNew(void *context, const char *title, int w, int h, RenderCallback update, InputCallback input,
-                 ResizeCallback resize, CursorCallback cursor) {
+Result WindowNew(
+    void *context,
+    const char *title,
+    int w,
+    int h,
+    RenderCallback update,
+    InputCallback input,
+    ResizeCallback resize,
+    CursorCallback cursor
+) {
   window.context = context;
   window.update = update;
   window.input = input;
@@ -56,7 +64,7 @@ Result WindowNew(void *context, const char *title, int w, int h, RenderCallback 
   window.cursor = cursor;
 
   glfwSetErrorCallback(error_callback);
-  if (!glfwInit()) { return Err(GlfwInit); }
+  if (!glfwInit()) { return ERR(GlfwInit); }
 
   printf("GLFW Version: %s\n", glfwGetVersionString());
 
@@ -67,14 +75,14 @@ Result WindowNew(void *context, const char *title, int w, int h, RenderCallback 
   window.hndl = glfwCreateWindow(w, h, title, NULL, NULL);
   if (!window.hndl) {
     WindowDestroy();
-    return Err(GlfwWindow);
+    return ERR(GlfwWindow);
   }
 
   glfwMakeContextCurrent(window.hndl);
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     fprintf(stderr, "gladLoadGLLoader failed");
     WindowDestroy();
-    return Err(GladLoading);
+    return ERR(GladLoading);
   }
 
   printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
@@ -83,7 +91,7 @@ Result WindowNew(void *context, const char *title, int w, int h, RenderCallback 
   glfwSetKeyCallback(window.hndl, input_callback);
   glfwSetCursorPosCallback(window.hndl, cursor_callback);
 
-  return Ok;
+  return OK;
 }
 
 void WindowCaptureCursor(bool capture) {
