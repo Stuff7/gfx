@@ -13,7 +13,7 @@ set logging enabled on
 show args
 
 break TableDirParse
-break src/main.c:47
+break src/main.c:52
 
 run
 
@@ -42,4 +42,4 @@ print_struct "loca" loca
 print_struct "maxp" maxp
 print_struct "name" name
 print *name.nameRecord@name.count
-# print *name.strings@name.count
+print_struct "Strings" *strings@name.count

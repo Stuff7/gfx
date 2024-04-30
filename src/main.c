@@ -44,6 +44,16 @@ int main(int argc, char **argv) {
     NameTable name;
     TableDirGetTable(&table, TableTag_Name, &name);
 
+    char **strings = malloc(name.count * sizeof(char *));
+    for (int i = 0; i < name.count; i++) {
+      NameRecordGetString(&table, &name.nameRecord[i], &name, &strings[i]);
+    }
+
+    for (int i = 0; i < name.count; i++) {
+      free(strings[i]);
+    }
+    free(strings);
+
     CmapTableFree(&cmap);
     CvtTableFree(&cvt);
     FpgmTableFree(&fpgm);

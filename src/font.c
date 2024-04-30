@@ -1,5 +1,6 @@
 #include "font.h"
-#include "renderer.h"
+#include "utils.h"
+#include <stdlib.h>
 
 #define MAX_ALLOC_SIZE 100000
 
@@ -223,8 +224,8 @@ Result CmapTableParse(CmapTable *self, Bitstream *bs) {
 }
 
 Result EncodingRecordParse(EncodingRecord *self, Bitstream *bs) {
-  TRY(BitstreamReadU16(bs, &self->platformID));
-  TRY(BitstreamReadU16(bs, &self->encodingID));
+  ENUM_PARSE(bs, u16, U16, PlatformID, self->platformID);
+  ENUM_PARSE(bs, u16, U16, EncodingIDWindows, self->encodingID);
   TRY(BitstreamReadU32(bs, &self->subtableOffset));
 
   return OK;
@@ -345,10 +346,14 @@ Result LocaTableParse(LocaTable *self, Bitstream *bs, const HeadTable *head) {
 }
 
 Result NameRecordParse(NameRecord *self, Bitstream *bs) {
-  TRY(BitstreamReadU16(bs, &self->platformID));
-  TRY(BitstreamReadU16(bs, &self->encodingID));
+  ENUM_PARSE(bs, u16, U16, PlatformID, self->platformID);
+  if (self->platformID == PlatformID_Macintosh) {
+    ENUM_PARSE(bs, u16, U16, EncodingIDMacintosh, self->encodingID.mac);
+  } else {
+    ENUM_PARSE(bs, u16, U16, EncodingIDWindows, self->encodingID.windows);
+  }
   TRY(BitstreamReadU16(bs, &self->languageID));
-  TRY(BitstreamReadU16(bs, &self->nameID));
+  ENUM_PARSE(bs, u16, U16, NameID, self->nameID);
   TRY(BitstreamReadU16(bs, &self->length));
   TRY(BitstreamReadU16(bs, &self->stringOffset));
 
@@ -359,6 +364,30 @@ Result LangTagRecordParse(LangTagRecord *self, Bitstream *bs) {
   TRY(BitstreamReadU16(bs, &self->length));
   TRY(BitstreamReadU16(bs, &self->langTagOffset));
 
+  return OK;
+}
+
+Result NameRecordGetString(TableDir *table, const NameRecord *record, const NameTable *nameTable, char **buf) {
+  Bitstream data;
+  TableRecord *nameTableRecord = &table->tableRecords[TableTag_Name];
+  BitstreamSlice(
+      &data, table->bs, nameTableRecord->offset + nameTable->storageOffset + record->stringOffset, record->length
+  );
+
+  u8 *bytes = malloc(record->length);
+
+  if (record->platformID == PlatformID_Windows && record->encodingID.windows == EncodingIDWindows_UnicodeBMP) {
+    TRY(BitstreamReadBuf(&data, bytes, record->length));
+    *buf = decodeUnicodeBMP(bytes, record->length);
+  } else if (record->platformID == PlatformID_Macintosh && record->encodingID.mac == EncodingIDMacintosh_Roman) {
+    TRY(BitstreamReadBuf(&data, bytes, record->length));
+    *buf = decodeMacRoman(bytes, record->length);
+  } else {
+    *buf = malloc(record->length + 1);
+    TRY(BitstreamReadStr(&data, *buf, record->length));
+  }
+
+  free(bytes);
   return OK;
 }
 
@@ -380,26 +409,12 @@ Result NameTableParse(NameTable *self, Bitstream *bs) {
     }
   }
 
-  // ASSERT_ALLOC(char *, self->count, self->strings);
-  // NameRecord *record;
-  // Bitstream data;
-  // for (int i = 0; i < self->count; i++) {
-  //   record = &self->nameRecord[i];
-  //   BitstreamSlice(&data, bs, self->storageOffset + record->stringOffset, record->length);
-  //   self->strings[i] = malloc(record->length + 1);
-  //   TRY(BitstreamReadStr(&data, self->strings[i], record->length));
-  // }
-
   return OK;
 }
 
 void NameTableFree(NameTable *self) {
   free(self->nameRecord);
   if (self->version == 1) { free(self->langTagRecord); }
-  // for (int i = 0; i < self->count; i++) {
-  //   free(self->strings[i]);
-  // }
-  // free(self->strings);
 }
 
 void LocaTableFree(LocaTable *self) { free(self->offsets); }

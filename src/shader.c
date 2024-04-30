@@ -1,4 +1,5 @@
 #include "renderer.h"
+#include "utils.h"
 #include <GL/gl.h>
 #include <stdlib.h>
 

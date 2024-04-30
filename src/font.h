@@ -1,10 +1,39 @@
 #pragma once
 
-#include "renderer.h"
+#include "utils.h"
 
 typedef char Tag[5];
 
 Result BitstreamReadTag(Bitstream *self, Tag buf);
+
+#define ENUM_PARSE(bs, typ, typRead, typEnum, var)                                                                     \
+  {                                                                                                                    \
+    typ id;                                                                                                            \
+    TRY(BitstreamRead##typRead(bs, &id));                                                                              \
+    var = (typEnum)id;                                                                                                 \
+  }
+
+typedef enum {
+  PlatformID_Unicode = 0,
+  PlatformID_Macintosh,
+  PlatformID_ISO,
+  PlatformID_Windows,
+  PlatformID_Custom,
+} PlatformID;
+
+typedef enum {
+  EncodingIDWindows_Symbol = 0,
+  EncodingIDWindows_UnicodeBMP,
+} EncodingIDWindows;
+
+typedef enum {
+  EncodingIDMacintosh_Roman = 0,
+} EncodingIDMacintosh;
+
+typedef union {
+  EncodingIDMacintosh mac;
+  EncodingIDWindows windows;
+} EncodingID;
 
 typedef enum {
   TableTag_GDEF = 0,
@@ -144,8 +173,8 @@ typedef struct {
 Result OS2TableParse(OS2Table *self, Bitstream *bs);
 
 typedef struct {
-  u16 platformID;
-  u16 encodingID;
+  PlatformID platformID;
+  EncodingIDWindows encodingID;
   u32 subtableOffset;
 } EncodingRecord;
 Result EncodingRecordParse(EncodingRecord *self, Bitstream *bs);
@@ -215,11 +244,41 @@ typedef struct {
 Result LocaTableParse(LocaTable *self, Bitstream *bs, const HeadTable *head);
 void LocaTableFree(LocaTable *self);
 
+typedef enum {
+  NameID_Copyright = 0,
+  NameID_FontFamilyName,
+  NameID_FontSubFamilyName,
+  NameID_UniqueFontIdentifier,
+  NameID_FullFontName,
+  NameID_VersionString,
+  NameID_PostScriptName,
+  NameID_Trademark,
+  NameID_ManufacturerName,
+  NameID_Designer,
+  NameID_Description,
+  NameID_URLVendor,
+  NameID_URLDesigner,
+  NameID_LicenseDescription,
+  NameID_LicenseInfoURL,
+  NameID_Reserved,
+  NameID_TypographicFamilyName,
+  NameID_TypographicSubfamilyName,
+  NameID_CompatibleFull,
+  NameID_SampleText,
+  NameID_PostScriptCIDFindFontName,
+  NameID_WWSFamilyName,
+  NameID_WWSSubfamilyName,
+  NameID_LightBackgroundPalette,
+  NameID_DarkBackgroundPalette,
+  NameID_VariationsPostScriptNamePrefix,
+  NameID_Unknown,
+} NameID;
+
 typedef struct {
-  u16 platformID;
-  u16 encodingID;
+  PlatformID platformID;
+  EncodingID encodingID;
   u16 languageID;
-  u16 nameID;
+  NameID nameID;
   u16 length;
   u16 stringOffset;
 } NameRecord;
@@ -240,9 +299,9 @@ typedef struct {
   NameRecord *nameRecord;
   u16 langTagCount;
   LangTagRecord *langTagRecord;
-  char **strings;
 } NameTable;
 
 Result NameTableParse(NameTable *self, Bitstream *bs);
+Result NameRecordGetString(TableDir *table, const NameRecord *record, const NameTable *nameTable, char **buf);
 
 void NameTableFree(NameTable *self);

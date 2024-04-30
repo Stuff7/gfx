@@ -1,6 +1,5 @@
 #include "font.h"
-#include "renderer.h"
-#include <string.h>
+#include "utils.h"
 
 Result BitstreamFromFile(Bitstream *self, const char *path) {
   self->i = 0;
