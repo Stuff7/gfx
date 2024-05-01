@@ -20,11 +20,8 @@ void CameraRotate(Camera *camera, float yaw, float pitch, float roll) {
   camera->rotation.x += yaw;
   camera->rotation.y += pitch;
   const f64 HALF_PI = (PI / 2.0) - 0.01;
-  if (camera->rotation.y >= HALF_PI) {
-    camera->rotation.y = HALF_PI;
-  } else if (camera->rotation.y <= -HALF_PI) {
-    camera->rotation.y = -HALF_PI;
-  }
+  if (camera->rotation.y >= HALF_PI) { camera->rotation.y = HALF_PI; }
+  else if (camera->rotation.y <= -HALF_PI) { camera->rotation.y = -HALF_PI; }
   camera->rotation.z += roll;
 
   camera->front.x = cosf(camera->rotation.x) * cosf(camera->rotation.y);
@@ -32,7 +29,9 @@ void CameraRotate(Camera *camera, float yaw, float pitch, float roll) {
   camera->front.z = sinf(camera->rotation.x) * cosf(camera->rotation.y);
   camera->front = Vec3Normalize(camera->front);
 
-  Vec3 worldUp = {{0.0f, 1.0f, 0.0f}};
+  Vec3 worldUp = {
+      {0.0f, 1.0f, 0.0f}
+  };
   camera->right = Vec3Normalize(Vec3Cross(camera->front, worldUp));
   camera->up = Vec3Normalize(Vec3Cross(camera->right, camera->front));
 

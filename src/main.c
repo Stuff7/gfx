@@ -1,6 +1,7 @@
-#include "font.h"
 #include "game.h"
 #include "renderer.h"
+#include "ttf/tables.h"
+#include "utils.h"
 #include <string.h>
 
 int main(int argc, char **argv) {
@@ -17,36 +18,49 @@ int main(int argc, char **argv) {
     }
 
     Bitstream bs;
-    if (isErr(BitstreamFromFile(&bs, argv[2]))) { return -1; }
+    if (ResultUnwrap(BitstreamFromFile(&bs, argv[2]))) { return -1; }
     TableDir table;
-    if (isErr(TableDirParse(&table, &bs))) { return -1; }
+    if (ResultUnwrap(TableDirParse(&table, &bs))) { return -1; }
 
+    Bitstream data;
+    if (ResultUnwrap(BitstreamSlice(&data, &bs, 0, bs.size))) { return -1; }
     GDEFTable gdef;
-    TableDirGetTable(&table, TableTag_GDEF, &gdef);
+    if (ResultUnwrap(TableDirFindTable(&table, TableTag_GDEF, &data))) { return -1; }
+    if (ResultUnwrap(GDEFTableParse(&gdef, &data))) { return -1; }
     GPOSTable gpos;
-    TableDirGetTable(&table, TableTag_GPOS, &gpos);
+    if (ResultUnwrap(TableDirFindTable(&table, TableTag_GPOS, &data))) { return -1; }
+    if (ResultUnwrap(GPOSTableParse(&gpos, &data))) { return -1; }
     GSUBTable gsub;
-    TableDirGetTable(&table, TableTag_GSUB, &gsub);
+    if (ResultUnwrap(TableDirFindTable(&table, TableTag_GSUB, &data))) { return -1; }
+    if (ResultUnwrap(GPOSTableParse(&gsub, &data))) { return -1; }
     OS2Table os2;
-    TableDirGetTable(&table, TableTag_OS2, &os2);
+    if (ResultUnwrap(TableDirFindTable(&table, TableTag_OS2, &data))) { return -1; }
+    if (ResultUnwrap(OS2TableParse(&os2, &data))) { return -1; }
     CmapTable cmap;
-    TableDirGetTable(&table, TableTag_Cmap, &cmap);
+    if (ResultUnwrap(TableDirFindTable(&table, TableTag_Cmap, &data))) { return -1; }
+    if (ResultUnwrap(CmapTableParse(&cmap, &data))) { return -1; }
     CvtTable cvt;
-    TableDirGetTable(&table, TableTag_Cvt, &cvt);
+    if (ResultUnwrap(TableDirFindTable(&table, TableTag_Cvt, &data))) { return -1; }
+    if (ResultUnwrap(CvtTableParse(&cvt, &data))) { return -1; }
     FpgmTable fpgm;
-    TableDirGetTable(&table, TableTag_Fpgm, &fpgm);
+    if (ResultUnwrap(TableDirFindTable(&table, TableTag_Fpgm, &data))) { return -1; }
+    if (ResultUnwrap(FpgmTableParse(&fpgm, &data))) { return -1; }
     GaspTable gasp;
-    TableDirGetTable(&table, TableTag_Gasp, &gasp);
-    LocaTable loca;
-    TableDirGetTable(&table, TableTag_Loca, &loca);
-    MaxpTable maxp;
-    TableDirGetTable(&table, TableTag_Maxp, &maxp);
+    if (ResultUnwrap(TableDirFindTable(&table, TableTag_Gasp, &data))) { return -1; }
+    if (ResultUnwrap(GaspTableParse(&gasp, &data))) { return -1; }
     NameTable name;
-    TableDirGetTable(&table, TableTag_Name, &name);
+    if (ResultUnwrap(TableDirFindTable(&table, TableTag_Name, &data))) { return -1; }
+    if (ResultUnwrap(NameTableParse(&name, &data))) { return -1; }
+
+    GlyphParser glyph;
+    if (ResultUnwrap(GlyphParserNew(&glyph, &table))) {
+      goto cleanup;
+      return -1;
+    }
 
     char **strings = malloc(name.count * sizeof(char *));
     for (int i = 0; i < name.count; i++) {
-      NameRecordGetString(&table, &name.nameRecord[i], &name, &strings[i]);
+      NameRecordGetString(&name.nameRecord[i], &name, &strings[i]);
     }
 
     for (int i = 0; i < name.count; i++) {
@@ -54,17 +68,19 @@ int main(int argc, char **argv) {
     }
     free(strings);
 
+  cleanup:
+    GlyphParserDestroy(&glyph);
     CmapTableFree(&cmap);
     CvtTableFree(&cvt);
     FpgmTableFree(&fpgm);
     GaspTableFree(&gasp);
-    LocaTableFree(&loca);
     NameTableFree(&name);
     BitstreamDestroy(&bs);
-  } else if (strcmp(cmd, "gl") == 0) {
+  }
+  else if (strcmp(cmd, "gl") == 0) {
     window.renderFps = argc > 2 && !strcmp(argv[2], "fps");
     State state = StateNew();
-    if (isErr(StateCreateScene(&state, "Gfx"))) { StateDestroy(&state); }
+    if (ResultUnwrap(StateCreateScene(&state, "Gfx"))) { StateDestroy(&state); }
     WindowRun();
     StateDestroy(&state);
   }

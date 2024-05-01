@@ -1,5 +1,4 @@
 #include "game.h"
-#include "math.h"
 #include "renderer.h"
 
 #define SURF_SIZE 100

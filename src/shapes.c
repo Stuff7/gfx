@@ -33,7 +33,8 @@ Cube CubeNew(f32 width, f32 height, f32 depth) {
                 .btl = {{-width, height, -depth}},
                 .btr = {{width, height, -depth}},
                 .bbl = {{width, -height, -depth}},
-                .bbr = {{-width, -height, -depth}}};
+                .bbr = {{-width, -height, -depth}}
+  };
 }
 
 void CubeIndices(uint *indices) {

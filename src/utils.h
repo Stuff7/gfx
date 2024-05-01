@@ -25,7 +25,7 @@ typedef struct {
 } Bitstream;
 
 Result BitstreamFromFile(Bitstream *self, const char *path);
-Result BitstreamSlice(Bitstream *self, Bitstream *src, u64 offset, u64 size);
+Result BitstreamSlice(Bitstream *self, const Bitstream *src, u64 offset, u64 size);
 void BitstreamSkip(Bitstream *self, u64 bytes);
 void BitstreamDestroy(Bitstream *self);
 
