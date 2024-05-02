@@ -17,7 +17,6 @@ typedef struct Result {
 
 #define ERR3F(_kind, _reason, ...)                                                                                     \
   __extension__({                                                                                                      \
-    printf("MALLOC\n");                                                                                                \
     Result *_r = malloc(sizeof(Result));                                                                               \
     asprintf(                                                                                                          \
         &_r->reason,                                                                                                   \

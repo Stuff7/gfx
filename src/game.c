@@ -43,7 +43,7 @@ Result *StateCreateScene(State *state, const char *windowTitle) {
       (ResizeCallback)resize,
       (CursorCallback)mouseInput
   ));
-  TRY(ShaderNew(&state->shader, "shaders/vert.glsl", "shaders/frag.glsl"));
+  TRY(ShaderNew(&state->shader, "shaders/vert.gls", "shaders/frag.glsl"));
 
   WindowSetCursor(state->cursor.x, state->cursor.y);
   WindowCaptureCursor((state->cursor.capture = true));
