@@ -47,7 +47,7 @@ void WindowRun() {
 
 Window window;
 
-Result WindowNew(
+Result *WindowNew(
     void *context,
     const char *title,
     int w,
@@ -64,7 +64,7 @@ Result WindowNew(
   window.cursor = cursor;
 
   glfwSetErrorCallback(error_callback);
-  if (!glfwInit()) { return ERR(GlfwInit); }
+  if (!glfwInit()) { return ERR("glfwInit failed"); }
 
   printf("GLFW Version: %s\n", glfwGetVersionString());
 
@@ -75,14 +75,14 @@ Result WindowNew(
   window.hndl = glfwCreateWindow(w, h, title, NULL, NULL);
   if (!window.hndl) {
     WindowDestroy();
-    return ERR(GlfwWindow);
+    return ERR("GLFWwindow creation failed");
   }
 
   glfwMakeContextCurrent(window.hndl);
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     fprintf(stderr, "gladLoadGLLoader failed");
     WindowDestroy();
-    return ERR(GladLoading);
+    return ERR("Glad loading failed");
   }
 
   printf("OpenGL Version: %s\n", glGetString(GL_VERSION));

@@ -4,6 +4,7 @@
 #include "defs.h"
 #include "keyboard.h"
 #include "math.h"
+#include "result.h"
 #include <endian.h>
 #include <glad/glad.h>
 
@@ -29,7 +30,7 @@ typedef struct {
 
 extern Window window;
 
-Result WindowNew(
+Result *WindowNew(
     void *context,
     const char *title,
     int w,
@@ -46,7 +47,7 @@ void WindowClose();
 void WindowDestroy();
 
 /* ---------------- Shader ---------------- */
-Result ShaderNew(uint *shader, const char *vert, const char *frag);
+Result *ShaderNew(uint *shader, const char *vert, const char *frag);
 void ShaderUse(uint shader);
 void ShaderDestroy(uint shader);
 

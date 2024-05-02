@@ -1,4 +1,5 @@
 #include "math.h"
+#include <stdio.h>
 
 void Mat4Identity(Mat4 *self) {
   // clang-format off

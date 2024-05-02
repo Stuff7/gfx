@@ -1,7 +1,7 @@
 #include "tables.h"
 #include "types.h"
 
-Result GlyphParserNew(GlyphParser *self, TableDir *dir) {
+Result *GlyphParserNew(GlyphParser *self, TableDir *dir) {
   Bitstream bs;
 
   TRY(TableDirFindTable(dir, TableTag_Head, &bs));
@@ -24,8 +24,10 @@ Result GlyphParserNew(GlyphParser *self, TableDir *dir) {
   self->glyf = malloc(self->maxp.numGlyphs * sizeof(GlyfTable));
   for (u32 i = 0; i < self->maxp.numGlyphs; i++) {
     u32 offset = self->loca.offsets[i];
-    TRY(BitstreamSlice(&glyfBs, &bs, offset, bs.size - offset));
-    TRY(GlyfTableParse(&self->glyf[i], &glyfBs));
+    if (self->loca.offsets[i + 1] - offset) {
+      TRY(BitstreamSlice(&glyfBs, &bs, offset, bs.size - offset));
+      TRY(GlyfTableParse(&self->glyf[i], &glyfBs));
+    }
   }
 
   return OK;
@@ -37,7 +39,7 @@ void GlyphParserDestroy(GlyphParser *self) {
   free(self->glyf);
 }
 
-Result GlyfTableParse(GlyfTable *self, Bitstream *bs) {
+Result *GlyfTableParse(GlyfTable *self, Bitstream *bs) {
   TRY(BitstreamReadI16(bs, &self->numberOfContours));
   TRY(BitstreamReadI16(bs, &self->xMin));
   TRY(BitstreamReadI16(bs, &self->yMin));
@@ -47,7 +49,7 @@ Result GlyfTableParse(GlyfTable *self, Bitstream *bs) {
   return OK;
 }
 
-Result HheaTableParse(HheaTable *self, Bitstream *bs) {
+Result *HheaTableParse(HheaTable *self, Bitstream *bs) {
   TRY(BitstreamReadU16(bs, &self->majorVersion));
   TRY(BitstreamReadU16(bs, &self->minorVersion));
   TRY(BitstreamReadI16(bs, &self->ascender));
@@ -68,7 +70,7 @@ Result HheaTableParse(HheaTable *self, Bitstream *bs) {
   return OK;
 }
 
-Result LocaTableParse(LocaTable *self, Bitstream *bs, const HeadTable *head, const MaxpTable *maxp) {
+Result *LocaTableParse(LocaTable *self, Bitstream *bs, const HeadTable *head, const MaxpTable *maxp) {
   self->size = maxp->numGlyphs + 1;
 
   if (head->indexToLocFormat == LocFormat_Short) {
@@ -90,7 +92,7 @@ Result LocaTableParse(LocaTable *self, Bitstream *bs, const HeadTable *head, con
 
 void LocaTableFree(LocaTable *self) { free(self->offsets); }
 
-Result HmtxTableParse(HmtxTable *self, Bitstream *bs, const HheaTable *hhea, const MaxpTable *maxp) {
+Result *HmtxTableParse(HmtxTable *self, Bitstream *bs, const HheaTable *hhea, const MaxpTable *maxp) {
   self->hMetrics = malloc(hhea->numberOfHMetrics * sizeof(LongHorMetric));
   for (int i = 0; i < hhea->numberOfHMetrics; i++) {
     LongHorMetric *hMetric = &self->hMetrics[i];

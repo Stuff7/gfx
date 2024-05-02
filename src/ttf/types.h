@@ -4,7 +4,7 @@
 
 typedef char Tag[5];
 
-Result BitstreamReadTag(Bitstream *self, Tag buf);
+Result *BitstreamReadTag(Bitstream *self, Tag buf);
 
 #define ENUM_PARSE(bs, typ, typRead, typEnum, var)                                                                     \
   {                                                                                                                    \
@@ -60,7 +60,7 @@ typedef enum {
   TableTag_Unknown
 } TableTag;
 
-Result TableTagParse(TableTag *tableTag, Bitstream *bs);
+Result *TableTagParse(TableTag *tableTag, Bitstream *bs);
 
 typedef enum {
   LocFormat_Short = 0,
@@ -73,7 +73,7 @@ typedef struct {
   u32 length;
 } TableRecord;
 
-Result TableRecordParse(TableRecord *record, Bitstream *bs);
+Result *TableRecordParse(TableRecord *record, Bitstream *bs);
 
 typedef struct {
   PlatformID platformID;
@@ -81,14 +81,14 @@ typedef struct {
   u32 subtableOffset;
 } EncodingRecord;
 
-Result EncodingRecordParse(EncodingRecord *self, Bitstream *bs);
+Result *EncodingRecordParse(EncodingRecord *self, Bitstream *bs);
 
 typedef struct {
   u16 rangeMaxPPEM;
   u16 rangeGaspBehavior;
 } GaspRange;
 
-Result GaspRangeParse(GaspRange *self, Bitstream *bs);
+Result *GaspRangeParse(GaspRange *self, Bitstream *bs);
 
 typedef enum {
   NameID_Copyright = 0,
@@ -129,11 +129,11 @@ typedef struct {
   u16 stringOffset;
 } NameRecord;
 
-Result NameRecordParse(NameRecord *self, Bitstream *bs);
+Result *NameRecordParse(NameRecord *self, Bitstream *bs);
 
 typedef struct {
   u16 length;
   u16 langTagOffset;
 } LangTagRecord;
 
-Result LangTagRecordParse(LangTagRecord *self, Bitstream *bs);
+Result *LangTagRecordParse(LangTagRecord *self, Bitstream *bs);

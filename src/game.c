@@ -15,7 +15,7 @@ State StateNew() {
   return state;
 }
 
-Result StateCreateScene(State *state, const char *windowTitle) {
+Result *StateCreateScene(State *state, const char *windowTitle) {
   int i = 0;
   for (int y = 0; y < SURF_SIZE; y += 1) {
     for (int x = 0; x < SURF_SIZE; x += 1) {

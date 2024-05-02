@@ -1,7 +1,7 @@
 #include "tables.h"
 #include "types.h"
 
-Result GDEFTableParse(GDEFTable *self, Bitstream *bs) {
+Result *GDEFTableParse(GDEFTable *self, Bitstream *bs) {
   TRY(BitstreamReadU16(bs, &self->majorVersion));
   TRY(BitstreamReadU16(bs, &self->minorVersion));
   TRY(BitstreamReadU16(bs, &self->glyphClassDefOffset));
@@ -20,7 +20,7 @@ Result GDEFTableParse(GDEFTable *self, Bitstream *bs) {
   return OK;
 }
 
-Result GPOSTableParse(GPOSTable *self, Bitstream *bs) {
+Result *GPOSTableParse(GPOSTable *self, Bitstream *bs) {
   TRY(BitstreamReadU16(bs, &self->majorVersion));
   TRY(BitstreamReadU16(bs, &self->minorVersion));
   TRY(BitstreamReadU16(bs, &self->scriptListOffset));
@@ -31,7 +31,7 @@ Result GPOSTableParse(GPOSTable *self, Bitstream *bs) {
   return OK;
 }
 
-Result CvtTableParse(CvtTable *self, Bitstream *bs) {
+Result *CvtTableParse(CvtTable *self, Bitstream *bs) {
   self->size = bs->size / sizeof(i16);
   ASSERT_ALLOC(i16, self->size, self->instructions);
   for (u32 i = 0; i < self->size; i++) {
@@ -43,7 +43,7 @@ Result CvtTableParse(CvtTable *self, Bitstream *bs) {
 
 void CvtTableFree(CvtTable *self) { free(self->instructions); }
 
-Result FpgmTableParse(FpgmTable *self, Bitstream *bs) {
+Result *FpgmTableParse(FpgmTable *self, Bitstream *bs) {
   self->size = bs->size;
   ASSERT_ALLOC(u8, self->size, self->instructions);
   TRY(BitstreamReadBuf(bs, self->instructions, self->size));
@@ -53,7 +53,7 @@ Result FpgmTableParse(FpgmTable *self, Bitstream *bs) {
 
 void FpgmTableFree(FpgmTable *self) { free(self->instructions); }
 
-Result MaxpTableParse(MaxpTable *self, Bitstream *bs) {
+Result *MaxpTableParse(MaxpTable *self, Bitstream *bs) {
   TRY(BitstreamReadU32(bs, &self->version));
   TRY(BitstreamReadU16(bs, &self->numGlyphs));
 
@@ -76,7 +76,7 @@ Result MaxpTableParse(MaxpTable *self, Bitstream *bs) {
   return OK;
 }
 
-Result HeadTableParse(HeadTable *self, Bitstream *bs) {
+Result *HeadTableParse(HeadTable *self, Bitstream *bs) {
   TRY(BitstreamReadU16(bs, &self->majorVersion));
   TRY(BitstreamReadU16(bs, &self->minorVersion));
   TRY(BitstreamReadI32(bs, &self->fontRevision));

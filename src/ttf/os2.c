@@ -1,6 +1,6 @@
 #include "tables.h"
 
-Result OS2TableParse(OS2Table *self, Bitstream *bs) {
+Result *OS2TableParse(OS2Table *self, Bitstream *bs) {
   TRY(BitstreamReadU16(bs, &self->version));
   TRY(BitstreamReadI16(bs, &self->xAvgCharWidth));
   TRY(BitstreamReadU16(bs, &self->usWeightClass));

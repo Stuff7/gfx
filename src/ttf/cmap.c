@@ -1,6 +1,6 @@
 #include "tables.h"
 
-Result CmapTableParse(CmapTable *self, Bitstream *bs) {
+Result *CmapTableParse(CmapTable *self, Bitstream *bs) {
   TRY(BitstreamReadU16(bs, &self->version));
   TRY(BitstreamReadU16(bs, &self->numTables));
 
@@ -12,7 +12,7 @@ Result CmapTableParse(CmapTable *self, Bitstream *bs) {
   return OK;
 }
 
-Result EncodingRecordParse(EncodingRecord *self, Bitstream *bs) {
+Result *EncodingRecordParse(EncodingRecord *self, Bitstream *bs) {
   ENUM_PARSE(bs, u16, U16, PlatformID, self->platformID);
   ENUM_PARSE(bs, u16, U16, EncodingIDWindows, self->encodingID);
   TRY(BitstreamReadU32(bs, &self->subtableOffset));

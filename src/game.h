@@ -17,6 +17,7 @@ typedef struct {
   Mat4 *matrices;
   Color *colors;
   uint idx;
+
   struct {
     f64 x, y;
     bool capture;
@@ -25,7 +26,7 @@ typedef struct {
 
 State StateNew();
 void StateDestroy(State *state);
-Result StateCreateScene(State *state, const char *windowTitle);
+Result *StateCreateScene(State *state, const char *windowTitle);
 
 void processInput(State *state, Key key, KeyState keyState);
 void draw(State *state);

@@ -1,6 +1,6 @@
 #include "tables.h"
 
-Result GaspTableParse(GaspTable *self, Bitstream *bs) {
+Result *GaspTableParse(GaspTable *self, Bitstream *bs) {
   TRY(BitstreamReadU16(bs, &self->version));
   TRY(BitstreamReadU16(bs, &self->numRanges));
 
@@ -12,7 +12,7 @@ Result GaspTableParse(GaspTable *self, Bitstream *bs) {
   return OK;
 }
 
-Result GaspRangeParse(GaspRange *self, Bitstream *bs) {
+Result *GaspRangeParse(GaspRange *self, Bitstream *bs) {
   TRY(BitstreamReadU16(bs, &self->rangeMaxPPEM));
   TRY(BitstreamReadU16(bs, &self->rangeGaspBehavior));
 

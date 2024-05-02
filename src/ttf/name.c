@@ -1,6 +1,6 @@
 #include "tables.h"
 
-Result NameTableParse(NameTable *self, Bitstream *bs) {
+Result *NameTableParse(NameTable *self, Bitstream *bs) {
   TRY(BitstreamReadU16(bs, &self->version));
   TRY(BitstreamReadU16(bs, &self->count));
   TRY(BitstreamReadU16(bs, &self->storageOffset));
@@ -22,7 +22,7 @@ Result NameTableParse(NameTable *self, Bitstream *bs) {
   return OK;
 }
 
-Result NameRecordParse(NameRecord *self, Bitstream *bs) {
+Result *NameRecordParse(NameRecord *self, Bitstream *bs) {
   ENUM_PARSE(bs, u16, U16, PlatformID, self->platformID);
   if (self->platformID == PlatformID_Macintosh) { ENUM_PARSE(bs, u16, U16, EncodingIDMacintosh, self->encodingID.mac); }
   else { ENUM_PARSE(bs, u16, U16, EncodingIDWindows, self->encodingID.windows); }
@@ -34,14 +34,14 @@ Result NameRecordParse(NameRecord *self, Bitstream *bs) {
   return OK;
 }
 
-Result LangTagRecordParse(LangTagRecord *self, Bitstream *bs) {
+Result *LangTagRecordParse(LangTagRecord *self, Bitstream *bs) {
   TRY(BitstreamReadU16(bs, &self->length));
   TRY(BitstreamReadU16(bs, &self->langTagOffset));
 
   return OK;
 }
 
-Result NameRecordGetString(const NameRecord *record, const NameTable *table, char **buf) {
+Result *NameRecordGetString(const NameRecord *record, const NameTable *table, char **buf) {
   Bitstream data;
   TRY(BitstreamSlice(&data, &table->bs, record->stringOffset, record->length));
 

@@ -1,9 +1,10 @@
 #include "renderer.h"
+#include "result.h"
 #include "utils.h"
 #include <GL/gl.h>
 #include <stdlib.h>
 
-static Result compile(unsigned int *shader, int type, const char *path) {
+static Result *compile(unsigned int *shader, int type, const char *path) {
   char *src;
   TRY(readString(path, &src));
 
@@ -16,16 +17,16 @@ static Result compile(unsigned int *shader, int type, const char *path) {
   glGetShaderiv(*shader, GL_COMPILE_STATUS, &success);
 
   if (!success) {
-    char *infoLog = malloc(512);
+    char infoLog[512];
     glGetShaderInfoLog(*shader, 512, NULL, infoLog);
     glDeleteShader(*shader);
-    return ERR(ShaderCompilation, infoLog, free);
+    return ERRF("Shader compilation failed: %s", infoLog);
   }
 
   return OK;
 }
 
-Result ShaderNew(uint *shader, const char *vertPath, const char *fragPath) {
+Result *ShaderNew(uint *shader, const char *vertPath, const char *fragPath) {
   uint vert, frag;
   TRY(compile(&frag, GL_VERTEX_SHADER, vertPath));
   TRY(compile(&vert, GL_FRAGMENT_SHADER, fragPath));
@@ -39,17 +40,17 @@ Result ShaderNew(uint *shader, const char *vertPath, const char *fragPath) {
   int success;
   glGetProgramiv(*shader, GL_LINK_STATUS, &success);
   if (success == 0) {
-    char *infoLog = malloc(512);
+    char infoLog[512];
     glGetProgramInfoLog(*shader, 512, NULL, infoLog);
-    return ERR(ShaderProgramLink, infoLog, free);
+    return ERRF("Shader linking failed: %s", infoLog);
   }
 
   glValidateProgram(*shader);
   glGetProgramiv(*shader, GL_LINK_STATUS, &success);
   if (success == 0) {
-    char *infoLog = malloc(512);
+    char infoLog[512];
     glGetProgramInfoLog(*shader, 512, NULL, infoLog);
-    return ERR(ShaderProgramValidation, infoLog, free);
+    return ERRF("Shader validation failed: %s", infoLog);
   }
 
   glDeleteShader(vert);

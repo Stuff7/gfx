@@ -2,40 +2,22 @@
 
 #define MAX_UTF8_CHAR_SIZE 4
 
-const char *RESULT_STR[] = {
-    "Ok",
-    "glfwInit failed",
-    "GLFWwindow creation failed",
-    "Glad loading failed",
-    "Shader compilation failed",
-    "A system error occurred",
-    "Shader program linking failed",
-    "Shader program validation failed",
-    "Bitstream reached end of file while reading bits",
-    "Assertion failed",
-    "Try failed"
-};
+Result RESULT_OK = {.err = Error_Ok};
 
-bool ResultUnwrap(Result res) {
-  if (res.err) {
-    fprintf(
-        stderr,
-        "[ERROR] %s\n\t%s%sat %s:%d\n",
-        RESULT_STR[res.err],
-        res.ctx == NULL ? "" : (char *)res.ctx,
-        res.ctx == NULL ? "" : "\n\t",
-        res.fileName,
-        res.line
-    );
-    if (res.err == Error_System) { perror("[SystemError]"); }
-    if (res.free) { res.free((void *)res.ctx); }
-    if (res.cause != NULL) { return ResultUnwrap(*res.cause); }
+bool ResultUnwrap(Result *res) {
+  bool isErr = res->err;
+  if (isErr) {
+    if (res->reason) {
+      fprintf(stderr, "%s\n", res->reason);
+      free(res->reason);
+    }
+    if (res->err == Error_System) { perror("\x1b[1m\x1b[38;5;225mSystem\x1b[0m"); }
+    Result *parent = res->parent;
+    free(res);
+    if (parent) { ResultUnwrap(parent); }
   }
 
-  bool err = res.err;
-  if (res.parent != NULL) { free(res.parent); }
-  if (res.self != NULL) { free(res.self); }
-  return err;
+  return isErr;
 }
 
 char *decodeUnicodeBMP(const u8 *bytes, u64 length) {

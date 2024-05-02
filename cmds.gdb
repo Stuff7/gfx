@@ -47,7 +47,7 @@ print_ptr fpgm.instructions fpgm.size
 print_struct gasp
 print_ptr gasp.gaspRanges gasp.numRanges
 print_struct glyph
-print_ptr glyph.glyf glyph.maxp.numGlyphs
+print_ptr glyph.glyf 10
 # print_ptr glyph.hmtx.hMetrics glyph.hhea.numberOfHMetrics
 # print_ptr glyph.hmtx.leftSideBearings glyph.maxp.numGlyphs
 print_ptr glyph.loca.offsets glyph.loca.size

@@ -1,6 +1,6 @@
 #include "tables.h"
 
-Result TableDirParse(TableDir *self, Bitstream *bs) {
+Result *TableDirParse(TableDir *self, Bitstream *bs) {
   TRY(BitstreamSlice(&self->bs, bs, 0, bs->size));
   TRY(BitstreamReadU32(&self->bs, &self->sfntVersion));
   TRY(BitstreamReadU16(&self->bs, &self->numTables));
@@ -22,12 +22,12 @@ Result TableDirParse(TableDir *self, Bitstream *bs) {
   return OK;
 }
 
-Result TableDirFindTable(TableDir *self, TableTag tag, Bitstream *bs) {
+Result *TableDirFindTable(TableDir *self, TableTag tag, Bitstream *bs) {
   TableRecord *record = &self->tableRecords[tag];
   return BitstreamSlice(bs, &self->bs, record->offset, record->length);
 }
 
-Result TableTagParse(TableTag *tableTag, Bitstream *bs) {
+Result *TableTagParse(TableTag *tableTag, Bitstream *bs) {
   Tag tag;
   TRY(BitstreamReadTag(bs, tag));
 
@@ -54,7 +54,7 @@ Result TableTagParse(TableTag *tableTag, Bitstream *bs) {
   return OK;
 }
 
-Result TableRecordParse(TableRecord *record, Bitstream *bs) {
+Result *TableRecordParse(TableRecord *record, Bitstream *bs) {
   TRY(BitstreamReadU32(bs, &record->checksum));
   TRY(BitstreamReadU32(bs, &record->offset));
   TRY(BitstreamReadU32(bs, &record->length));

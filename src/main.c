@@ -18,49 +18,53 @@ int main(int argc, char **argv) {
     }
 
     Bitstream bs;
-    if (ResultUnwrap(BitstreamFromFile(&bs, argv[2]))) { return -1; }
+    if (UNWRAP(BitstreamFromFile(&bs, argv[2]))) { return -1; }
     TableDir table;
-    if (ResultUnwrap(TableDirParse(&table, &bs))) { return -1; }
+    if (UNWRAP(TableDirParse(&table, &bs))) { return -1; }
 
     Bitstream data;
-    if (ResultUnwrap(BitstreamSlice(&data, &bs, 0, bs.size))) { return -1; }
+    if (UNWRAP(BitstreamSlice(&data, &bs, 0, bs.size))) { return -1; }
     GDEFTable gdef;
-    if (ResultUnwrap(TableDirFindTable(&table, TableTag_GDEF, &data))) { return -1; }
-    if (ResultUnwrap(GDEFTableParse(&gdef, &data))) { return -1; }
+    if (UNWRAP(TableDirFindTable(&table, TableTag_GDEF, &data))) { return -1; }
+    if (data.size) {
+      if (UNWRAP(GDEFTableParse(&gdef, &data))) { return -1; }
+    }
     GPOSTable gpos;
-    if (ResultUnwrap(TableDirFindTable(&table, TableTag_GPOS, &data))) { return -1; }
-    if (ResultUnwrap(GPOSTableParse(&gpos, &data))) { return -1; }
+    if (UNWRAP(TableDirFindTable(&table, TableTag_GPOS, &data))) { return -1; }
+    if (data.size) {
+      if (UNWRAP(GPOSTableParse(&gpos, &data))) { return -1; }
+    }
     GSUBTable gsub;
-    if (ResultUnwrap(TableDirFindTable(&table, TableTag_GSUB, &data))) { return -1; }
-    if (ResultUnwrap(GPOSTableParse(&gsub, &data))) { return -1; }
+    if (UNWRAP(TableDirFindTable(&table, TableTag_GSUB, &data))) { return -1; }
+    if (UNWRAP(GPOSTableParse(&gsub, &data))) { return -1; }
     OS2Table os2;
-    if (ResultUnwrap(TableDirFindTable(&table, TableTag_OS2, &data))) { return -1; }
-    if (ResultUnwrap(OS2TableParse(&os2, &data))) { return -1; }
+    if (UNWRAP(TableDirFindTable(&table, TableTag_OS2, &data))) { return -1; }
+    if (UNWRAP(OS2TableParse(&os2, &data))) { return -1; }
     CmapTable cmap;
-    if (ResultUnwrap(TableDirFindTable(&table, TableTag_Cmap, &data))) { return -1; }
-    if (ResultUnwrap(CmapTableParse(&cmap, &data))) { return -1; }
+    if (UNWRAP(TableDirFindTable(&table, TableTag_Cmap, &data))) { return -1; }
+    if (UNWRAP(CmapTableParse(&cmap, &data))) { return -1; }
     CvtTable cvt;
-    if (ResultUnwrap(TableDirFindTable(&table, TableTag_Cvt, &data))) { return -1; }
-    if (ResultUnwrap(CvtTableParse(&cvt, &data))) { return -1; }
+    if (UNWRAP(TableDirFindTable(&table, TableTag_Cvt, &data))) { return -1; }
+    if (UNWRAP(CvtTableParse(&cvt, &data))) { return -1; }
     FpgmTable fpgm;
-    if (ResultUnwrap(TableDirFindTable(&table, TableTag_Fpgm, &data))) { return -1; }
-    if (ResultUnwrap(FpgmTableParse(&fpgm, &data))) { return -1; }
+    if (UNWRAP(TableDirFindTable(&table, TableTag_Fpgm, &data))) { return -1; }
+    if (UNWRAP(FpgmTableParse(&fpgm, &data))) { return -1; }
     GaspTable gasp;
-    if (ResultUnwrap(TableDirFindTable(&table, TableTag_Gasp, &data))) { return -1; }
-    if (ResultUnwrap(GaspTableParse(&gasp, &data))) { return -1; }
+    if (UNWRAP(TableDirFindTable(&table, TableTag_Gasp, &data))) { return -1; }
+    if (UNWRAP(GaspTableParse(&gasp, &data))) { return -1; }
     NameTable name;
-    if (ResultUnwrap(TableDirFindTable(&table, TableTag_Name, &data))) { return -1; }
-    if (ResultUnwrap(NameTableParse(&name, &data))) { return -1; }
+    if (UNWRAP(TableDirFindTable(&table, TableTag_Name, &data))) { return -1; }
+    if (UNWRAP(NameTableParse(&name, &data))) { return -1; }
 
     GlyphParser glyph;
-    if (ResultUnwrap(GlyphParserNew(&glyph, &table))) {
+    if (UNWRAP(GlyphParserNew(&glyph, &table))) {
       goto cleanup;
       return -1;
     }
 
     char **strings = malloc(name.count * sizeof(char *));
     for (int i = 0; i < name.count; i++) {
-      NameRecordGetString(&name.nameRecord[i], &name, &strings[i]);
+      if (UNWRAP(NameRecordGetString(&name.nameRecord[i], &name, &strings[i]))) { return -1; }
     }
 
     for (int i = 0; i < name.count; i++) {
@@ -80,7 +84,7 @@ int main(int argc, char **argv) {
   else if (strcmp(cmd, "gl") == 0) {
     window.renderFps = argc > 2 && !strcmp(argv[2], "fps");
     State state = StateNew();
-    if (ResultUnwrap(StateCreateScene(&state, "Gfx"))) { StateDestroy(&state); }
+    if (UNWRAP(StateCreateScene(&state, "Gfx"))) { StateDestroy(&state); }
     WindowRun();
     StateDestroy(&state);
   }
