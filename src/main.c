@@ -62,6 +62,14 @@ int main(int argc, char **argv) {
       return -1;
     }
 
+    u16 bmpGlyphMap[0xFFFF];
+    if (UNWRAP(CmapSubtableGetBMPCharGlyphIDMap(&cmap.subtable, bmpGlyphMap))) { return -1; }
+    char *c = "Hello World!";
+    while (*c != '\0') {
+      printf("%u ", bmpGlyphMap[(u8) * (c++)]);
+    }
+    printf("\n");
+
     char **strings = malloc(name.count * sizeof(char *));
     for (int i = 0; i < name.count; i++) {
       if (UNWRAP(NameRecordGetString(&name.nameRecord[i], &name, &strings[i]))) { return -1; }

@@ -12,6 +12,14 @@
     table = malloc(size);                                                                                              \
   }
 
+#define FILL_BUF(_typ, _fnPostfix, _bs, _size, _buf)                                                                   \
+  {                                                                                                                    \
+    ASSERT_ALLOC(_typ, _size, _buf);                                                                                   \
+    for (int i = 0; i < _size; i++) {                                                                                  \
+      TRY(BitstreamRead##_fnPostfix(_bs, &_buf[i]));                                                                   \
+    }                                                                                                                  \
+  }
+
 typedef struct {
   i16 numberOfContours;
   i16 xMin;
@@ -208,10 +216,30 @@ typedef struct {
 
 Result *OS2TableParse(OS2Table *self, Bitstream *bs);
 
+// Format 4
+typedef struct {
+  u16 format;
+  u16 length;
+  u16 language;
+  u16 segCount;
+  u16 searchRange;
+  u16 entrySelector;
+  u16 rangeShift;
+  u16 *endCode;
+  u16 reservedPad;
+  u16 *startCode;
+  i16 *idDelta;
+  u16 *idRangeOffsets;
+  Bitstream glyphIdStream;
+} CmapSubtable;
+
+Result *CmapSubtableGetBMPCharGlyphIDMap(CmapSubtable *self, u16 *glyphIds);
+
 typedef struct {
   u16 version;
   u16 numTables;
   EncodingRecord *encodingRecords;
+  CmapSubtable subtable;
 } CmapTable;
 
 Result *CmapTableParse(CmapTable *self, Bitstream *bs);

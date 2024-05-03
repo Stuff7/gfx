@@ -1,4 +1,5 @@
 #include "tables.h"
+#include "types.h"
 
 Result *NameTableParse(NameTable *self, Bitstream *bs) {
   TRY(BitstreamReadU16(bs, &self->version));
@@ -23,9 +24,7 @@ Result *NameTableParse(NameTable *self, Bitstream *bs) {
 }
 
 Result *NameRecordParse(NameRecord *self, Bitstream *bs) {
-  ENUM_PARSE(bs, u16, U16, PlatformID, self->platformID);
-  if (self->platformID == PlatformID_Macintosh) { ENUM_PARSE(bs, u16, U16, EncodingIDMacintosh, self->encodingID.mac); }
-  else { ENUM_PARSE(bs, u16, U16, EncodingIDWindows, self->encodingID.windows); }
+  TRY(PlatformEncodingIDParse(&self->platformID, &self->encodingID, bs));
   TRY(BitstreamReadU16(bs, &self->languageID));
   ENUM_PARSE(bs, u16, U16, NameID, self->nameID);
   TRY(BitstreamReadU16(bs, &self->length));

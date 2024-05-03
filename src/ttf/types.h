@@ -26,9 +26,30 @@ typedef enum {
   PlatformID_Custom,
 } PlatformID;
 
+const char *PlatformIDString(PlatformID platform);
+
+typedef enum {
+  EncodingIDUnicode_1_0 = 0,
+  EncodingIDUnicode_1_1,
+  EncodingIDUnicode_ISO_IEC_10646,
+  EncodingIDUnicode_2_0_BMP,
+  EncodingIDUnicode_2_0_Full,
+  EncodingIDUnicode_Variation,
+  EncodingIDUnicode_Full,
+} EncodingIDUnicode;
+
 typedef enum {
   EncodingIDWindows_Symbol = 0,
   EncodingIDWindows_UnicodeBMP,
+  EncodingIDWindows_ShiftJIS,
+  EncodingIDWindows_PRC,
+  EncodingIDWindows_Big5,
+  EncodingIDWindows_Wansung,
+  EncodingIDWindows_Johab,
+  EncodingIDWindows_Reserved7,
+  EncodingIDWindows_Reserved8,
+  EncodingIDWindows_Reserved9,
+  EncodingIDWindows_UnicodeFull,
 } EncodingIDWindows;
 
 typedef enum {
@@ -36,9 +57,12 @@ typedef enum {
 } EncodingIDMacintosh;
 
 typedef union {
+  EncodingIDUnicode unicode;
   EncodingIDMacintosh mac;
   EncodingIDWindows windows;
 } EncodingID;
+
+Result *PlatformEncodingIDParse(PlatformID *platform, EncodingID *encoding, Bitstream *bs);
 
 typedef enum {
   TableTag_GDEF = 0,
@@ -77,7 +101,7 @@ Result *TableRecordParse(TableRecord *record, Bitstream *bs);
 
 typedef struct {
   PlatformID platformID;
-  EncodingIDWindows encodingID;
+  EncodingID encodingID;
   u32 subtableOffset;
 } EncodingRecord;
 
