@@ -39,9 +39,6 @@ int main(int argc, char **argv) {
     OS2Table os2;
     if (UNWRAP(TableDir_findTable(&table, TableTag_OS2, &data))) { return -1; }
     if (UNWRAP(OS2Table_parse(&os2, &data))) { return -1; }
-    CmapTable cmap;
-    if (UNWRAP(TableDir_findTable(&table, TableTag_Cmap, &data))) { return -1; }
-    if (UNWRAP(CmapTable_parse(&cmap, &data))) { return -1; }
     CvtTable cvt;
     if (UNWRAP(TableDir_findTable(&table, TableTag_Cvt, &data))) { return -1; }
     if (UNWRAP(CvtTable_parse(&cvt, &data))) { return -1; }
@@ -61,14 +58,6 @@ int main(int argc, char **argv) {
       return -1;
     }
 
-    u16 bmpGlyphMap[0xFFFF];
-    if (UNWRAP(CmapSubtable_getBMPCharGlyphIDMap(&cmap.subtable, bmpGlyphMap))) { return -1; }
-    char *c = "Hello World!";
-    while (*c != '\0') {
-      printf("%u ", bmpGlyphMap[(u8) * (c++)]);
-    }
-    printf("\n");
-
     char **strings = malloc(name.count * sizeof(char *));
     for (int i = 0; i < name.count; i++) {
       if (UNWRAP(NameRecord_getString(&name.nameRecord[i], &name, &strings[i]))) { return -1; }
@@ -81,7 +70,6 @@ int main(int argc, char **argv) {
 
   cleanup:
     GlyphParser_free(&glyph);
-    CmapTable_free(&cmap);
     CvtTable_free(&cvt);
     FpgmTable_free(&fpgm);
     GaspTable_free(&gasp);

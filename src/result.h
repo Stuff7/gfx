@@ -40,15 +40,18 @@ typedef struct Result {
 extern Result RESULT_OK;
 #define OK &RESULT_OK
 
-#define TRY2(_result, _reason)                                                                                         \
+#define ERR_BUBBLE(_result, ...)                                                                                       \
   {                                                                                                                    \
     Result *_res = (_result);                                                                                          \
     if (_res->err) {                                                                                                   \
-      Result *_fail = ERR(_reason);                                                                                    \
+      Result *_fail = __VA_ARGS__;                                                                                     \
       _fail->parent = _res;                                                                                            \
       return _fail;                                                                                                    \
     }                                                                                                                  \
   }
+
+#define TRYF(_result, ...) ERR_BUBBLE(_result, ERRF(__VA_ARGS__))
+#define TRY2(_result, _reason) ERR_BUBBLE(_result, ERR(_reason))
 #define TRY1(_result) TRY2(_result, "Try failed")
 #define TRYN(_1, _2, _NAME, ...) _NAME
 #define TRY(...) TRYN(__VA_ARGS__, TRY2, TRY1)(__VA_ARGS__)

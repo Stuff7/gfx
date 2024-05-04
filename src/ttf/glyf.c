@@ -1,3 +1,4 @@
+#include "../math.h"
 #include "tables.h"
 #include "types.h"
 
@@ -19,9 +20,13 @@ Result *GlyphParser_new(GlyphParser *self, TableDir *dir) {
   TRY(TableDir_findTable(dir, TableTag_Hmtx, &bs));
   TRY(HmtxTable_parse(&self->hmtx, &bs, &self->hhea, &self->maxp));
 
+  TRY(TableDir_findTable(dir, TableTag_Cmap, &bs));
+  TRY(CmapTable_parse(&self->cmap, &bs));
+
   TRY(TableDir_findTable(dir, TableTag_Glyf, &bs));
   Bitstream glyfBs;
   self->glyf = malloc(self->maxp.numGlyphs * sizeof(GlyfTable));
+
   for (u32 i = 0; i < self->maxp.numGlyphs; i++) {
     u32 offset = self->loca.offsets[i];
     if (self->loca.offsets[i + 1] - offset) {
@@ -30,13 +35,114 @@ Result *GlyphParser_new(GlyphParser *self, TableDir *dir) {
     }
   }
 
+  ASSERT_ALLOC(Glyph, 0xFFFF, self->glyphs);
+  for (u16 c = 0x0000; c < 0xFFFF; c++) {
+    u16 idx;
+    TRY(CmapSubtable_findGlyphIdFromCharCode(&self->cmap.subtable, c, &idx));
+    TRYF(Glyph_parse(&self->glyphs[c], &self->glyf[idx]), "Failed to get glyph %u / %u", idx, self->maxp.numGlyphs);
+  }
+
   return OK;
 }
 
 void GlyphParser_free(GlyphParser *self) {
   HmtxTable_free(&self->hmtx);
   LocaTable_free(&self->loca);
+  CmapTable_free(&self->cmap);
+  for (int i = 0; i < 0xFFFF; i++) {
+    Glyph_free(&self->glyphs[i]);
+  }
+  free(self->glyphs);
   free(self->glyf);
+}
+
+static const u8 CURVE = 0;
+static const u8 U8_X = 1 << 1;
+static const u8 U8_Y = 1 << 2;
+static const u8 REPEAT = 1 << 3;
+static const u8 INSTRUCTION_X = 1 << 4;
+static const u8 INSTRUCTION_Y = 1 << 5;
+
+Result *Glyph_parsePoints(Glyph *self, GlyfTable *header, bool isX) {
+  u8 u8Mask = isX ? U8_X : U8_Y;
+  u8 instructionMask = isX ? INSTRUCTION_X : INSTRUCTION_Y;
+  i16 coord = 0;
+
+  for (int i = 0; i < self->numPoints; i++) {
+    u8 flag = self->flags[i];
+
+    if (MASK(flag, u8Mask)) {
+      u8 offset;
+      TRYF(
+          Bitstream_readU8(&header->glyphStream, &offset),
+          "Failed to get %c coord %u / %u",
+          isX ? 'x' : 'y',
+          i,
+          self->numPoints
+      );
+      coord += MASK(flag, instructionMask) ? offset : -offset;
+    }
+    else if (!MASK(flag, instructionMask)) {
+      i16 delta;
+      TRY(Bitstream_readI16(&header->glyphStream, &delta));
+      coord += delta;
+    }
+
+    if (isX) { self->points[i].x = coord; }
+    else { self->points[i].y = coord; }
+
+    self->points[i].onCurve = MASK(flag, CURVE);
+  }
+
+  return OK;
+}
+
+Result *Glyph_parse(Glyph *self, GlyfTable *header) {
+  self->needFree = header->numberOfContours >= 0 && header->glyphStream.size > 0;
+  if (!self->needFree) { return OK; }
+
+  ASSERT_ALLOC(u16, header->numberOfContours, self->endPtsOfContours);
+  self->numPoints = 0;
+  for (int i = 0; i < header->numberOfContours; i++) {
+    TRY(Bitstream_readU16(&header->glyphStream, &self->endPtsOfContours[i]));
+    self->numPoints = MAX(self->numPoints, self->endPtsOfContours[i] + 1u);
+  }
+
+  TRY(Bitstream_readU16(&header->glyphStream, &self->instructionLength));
+  FILL_BUF(u8, U8, &header->glyphStream, self->instructionLength, self->instructions);
+
+  ASSERT_ALLOC(u8, self->numPoints, self->flags);
+  for (int i = 0; i < self->numPoints; i++) {
+    TRY(Bitstream_readU8(&header->glyphStream, &self->flags[i]));
+    u8 flag = self->flags[i];
+
+    if (MASK(flag, REPEAT)) {
+      u8 repeatCount;
+      TRY(Bitstream_readU8(&header->glyphStream, &repeatCount));
+
+      for (int r = 0; r < repeatCount; r++) {
+        i++;
+        if (i >= self->numPoints) { break; }
+        self->flags[i] = flag;
+      }
+    }
+  }
+
+  ASSERT_ALLOC(GlyphPoint, self->numPoints, self->points);
+  TRY(Glyph_parsePoints(self, header, true));
+  TRY(Glyph_parsePoints(self, header, false));
+  header->glyphStream.i = 0;
+
+  return OK;
+}
+
+void Glyph_free(Glyph *self) {
+  if (self->needFree) {
+    free(self->endPtsOfContours);
+    free(self->instructions);
+    free(self->flags);
+    free(self->points);
+  }
 }
 
 Result *GlyfTable_parse(GlyfTable *self, Bitstream *bs) {
@@ -45,6 +151,7 @@ Result *GlyfTable_parse(GlyfTable *self, Bitstream *bs) {
   TRY(Bitstream_readI16(bs, &self->yMin));
   TRY(Bitstream_readI16(bs, &self->xMax));
   TRY(Bitstream_readI16(bs, &self->yMax));
+  TRY(Bitstream_slice(&self->glyphStream, bs, bs->i, bs->size - bs->i));
 
   return OK;
 }
@@ -101,9 +208,11 @@ Result *HmtxTable_parse(HmtxTable *self, Bitstream *bs, const HheaTable *hhea, c
   }
 
   self->leftSideBearingsSize = maxp->numGlyphs - hhea->numberOfHMetrics;
-  self->leftSideBearings = malloc(self->leftSideBearingsSize * sizeof(i16));
-  for (u64 i = 0; i < self->leftSideBearingsSize; i++) {
-    TRY(Bitstream_readI16(bs, &self->leftSideBearings[i]));
+  if (self->leftSideBearingsSize > 0) {
+    self->leftSideBearings = malloc(self->leftSideBearingsSize * sizeof(i16));
+    for (u64 i = 0; i < self->leftSideBearingsSize; i++) {
+      TRY(Bitstream_readI16(bs, &self->leftSideBearings[i]));
+    }
   }
 
   return OK;
@@ -111,5 +220,5 @@ Result *HmtxTable_parse(HmtxTable *self, Bitstream *bs, const HheaTable *hhea, c
 
 void HmtxTable_free(HmtxTable *self) {
   free(self->hMetrics);
-  free(self->leftSideBearings);
+  if (self->leftSideBearingsSize > 0) { free(self->leftSideBearings); }
 }

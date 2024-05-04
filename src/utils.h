@@ -4,6 +4,8 @@
 #include "result.h"
 #include <string.h>
 
+#define MASK(_flag, _mask) ((_flag) & (_mask))
+
 static inline bool streq(const char *a, const char *b) { return strcmp(a, b) == 0; }
 
 Result *readFile(const char *path, const char *modes, u8 **bytes, u64 *size);

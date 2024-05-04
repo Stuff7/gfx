@@ -5,6 +5,7 @@
 
 #define PI M_PI
 
+#define MAX(_x, _y) (((_x) > (_y)) ? (_x) : (_y))
 #define MIN(_x, _y) (((_x) < (_y)) ? (_x) : (_y))
 #define LBIT_OFF(_n, _c) (_n & (((u8)0xFF << _c) >> _c))
 #define RBIT_OFF(_n, _c) (_n & (((u8)0xFF >> _c) << _c))

@@ -3,7 +3,7 @@
 #include "types.h"
 #include "utils.h"
 
-#define MAX_ALLOC_SIZE 100000
+#define MAX_ALLOC_SIZE 1024 * 1024 * 4
 
 #define ASSERT_ALLOC(_typ, _num, _table)                                                                               \
   {                                                                                                                    \
@@ -26,6 +26,7 @@ typedef struct {
   i16 yMin;
   i16 xMax;
   i16 yMax;
+  Bitstream glyphStream;
 } GlyfTable;
 
 Result *GlyfTable_parse(GlyfTable *self, Bitstream *bs);
@@ -119,6 +120,36 @@ typedef struct {
 Result *LocaTable_parse(LocaTable *self, Bitstream *bs, const HeadTable *head, const MaxpTable *maxp);
 void LocaTable_free(LocaTable *self);
 
+// Format 4
+typedef struct {
+  u16 format;
+  u16 length;
+  u16 language;
+  u16 segCount;
+  u16 searchRange;
+  u16 entrySelector;
+  u16 rangeShift;
+  u16 *endCode;
+  u16 reservedPad;
+  u16 *startCode;
+  i16 *idDelta;
+  u16 *idRangeOffsets;
+  Bitstream glyphIdStream;
+} CmapSubtable;
+
+Result *CmapSubtable_findGlyphIdFromCharCode(CmapSubtable *self, u16 c, u16 *glyphId);
+Result *CmapSubtable_getBMPCharGlyphIDMap(CmapSubtable *self, u16 *glyphIds);
+
+typedef struct {
+  u16 version;
+  u16 numTables;
+  EncodingRecord *encodingRecords;
+  CmapSubtable subtable;
+} CmapTable;
+
+Result *CmapTable_parse(CmapTable *self, Bitstream *bs);
+void CmapTable_free(CmapTable *self);
+
 typedef struct {
   u32 sfntVersion;
   u16 numTables, searchRange, entrySelector, rangeShift;
@@ -130,15 +161,38 @@ Result *TableDir_parse(TableDir *table, Bitstream *bs);
 Result *TableDir_findTable(TableDir *self, TableTag tag, Bitstream *bs);
 
 typedef struct {
+  i16 x;
+  i16 y;
+  bool onCurve;
+} GlyphPoint;
+
+typedef struct {
+  bool needFree;
+  u16 *endPtsOfContours;
+  u16 instructionLength;
+  u8 *instructions;
+  u16 numPoints;
+  u8 *flags;
+  GlyphPoint *points;
+} Glyph;
+
+Result *Glyph_parsePoints(Glyph *self, GlyfTable *header, bool isX);
+Result *Glyph_parse(Glyph *self, GlyfTable *header);
+void Glyph_free(Glyph *self);
+
+typedef struct {
   HeadTable head;
   MaxpTable maxp;
   HheaTable hhea;
   LocaTable loca;
   HmtxTable hmtx;
+  CmapTable cmap;
   GlyfTable *glyf;
+  Glyph *glyphs;
 } GlyphParser;
 
 Result *GlyphParser_new(GlyphParser *self, TableDir *dir);
+Result *GlyphParser_mapGlyphs(GlyphParser *self, Glyph map[0xFFFF]);
 void GlyphParser_free(GlyphParser *self);
 
 typedef struct {
@@ -215,35 +269,6 @@ typedef struct {
 } OS2Table;
 
 Result *OS2Table_parse(OS2Table *self, Bitstream *bs);
-
-// Format 4
-typedef struct {
-  u16 format;
-  u16 length;
-  u16 language;
-  u16 segCount;
-  u16 searchRange;
-  u16 entrySelector;
-  u16 rangeShift;
-  u16 *endCode;
-  u16 reservedPad;
-  u16 *startCode;
-  i16 *idDelta;
-  u16 *idRangeOffsets;
-  Bitstream glyphIdStream;
-} CmapSubtable;
-
-Result *CmapSubtable_getBMPCharGlyphIDMap(CmapSubtable *self, u16 *glyphIds);
-
-typedef struct {
-  u16 version;
-  u16 numTables;
-  EncodingRecord *encodingRecords;
-  CmapSubtable subtable;
-} CmapTable;
-
-Result *CmapTable_parse(CmapTable *self, Bitstream *bs);
-void CmapTable_free(CmapTable *self);
 
 typedef struct {
   i16 *instructions;
