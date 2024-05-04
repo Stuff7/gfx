@@ -25,13 +25,13 @@ Result *Bitstream_readU8(Bitstream *self, u8 *buf) {
   return OK;
 }
 
-#define READ_BYTES(s)                                                                                                  \
-  u64 start = self->i;                                                                                                 \
-  self->i += s;                                                                                                        \
+#define READ_BYTES(_s)                                                                                                 \
+  u64 _start = self->i;                                                                                                \
+  self->i += _s;                                                                                                       \
   if (self->i > self->size) {                                                                                          \
     return ERRF("Encountered Eof while reading bitstream\n\toffset: %lu\n\tsize: %lu", self->i, self->size);           \
   }                                                                                                                    \
-  memcpy(buf, &self->buf[start], s)
+  memcpy(buf, &self->buf[_start], _s)
 
 Result *Bitstream_readU16(Bitstream *self, u16 *buf) {
   READ_BYTES(sizeof(u16));

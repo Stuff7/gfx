@@ -17,4 +17,4 @@ typedef uint8_t u8;
 typedef float f32;
 typedef double f64;
 
-#define UNUSED(type) __attribute__((unused)) type
+#define UNUSED(_type) __attribute__((unused)) _type

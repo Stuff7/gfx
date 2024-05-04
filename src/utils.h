@@ -14,9 +14,9 @@ char *decodeMacRoman(const u8 *bytes, u64 length);
 
 /* ---------------- Bitstream ---------------- */
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-#define BE_SWAP(buf, size) buf = htobe##size(buf)
+#define BE_SWAP(_buf, _size) _buf = htobe##_size(_buf)
 #elif
-#define BE_SWAP(buf, size)
+#define BE_SWAP(_buf, _size)
 #endif
 
 typedef struct {

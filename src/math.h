@@ -5,9 +5,9 @@
 
 #define PI M_PI
 
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-#define LBIT_OFF(n, c) (n & (((u8)0xFF << c) >> c))
-#define RBIT_OFF(n, c) (n & (((u8)0xFF >> c) << c))
+#define MIN(_x, _y) (((_x) < (_y)) ? (_x) : (_y))
+#define LBIT_OFF(_n, _c) (_n & (((u8)0xFF << _c) >> _c))
+#define RBIT_OFF(_n, _c) (_n & (((u8)0xFF >> _c) << _c))
 
 typedef union {
   struct {
@@ -96,31 +96,31 @@ void Quat_rotateY(Vec4 *quat, f32 angle);
 void Quat_rotateZ(Vec4 *quat, f32 angle);
 Mat4 Quat_toMat4(Vec4 q);
 
-#define DEF_VEC_NORMALIZE(typ, size)                                                                                   \
-  f32 typ##_length(typ v) {                                                                                            \
-    f32 sum = 0;                                                                                                       \
-    for (int i = 0; i < size; i++) {                                                                                   \
-      sum += v.data[i] * v.data[i];                                                                                    \
+#define DEF_VEC_NORMALIZE(_typ, _size)                                                                                 \
+  f32 _typ##_length(_typ _v) {                                                                                         \
+    f32 _sum = 0;                                                                                                      \
+    for (int _i = 0; _i < _size; _i++) {                                                                               \
+      _sum += _v.data[_i] * _v.data[_i];                                                                               \
     }                                                                                                                  \
-    return sqrt(sum);                                                                                                  \
+    return sqrt(_sum);                                                                                                 \
   }                                                                                                                    \
                                                                                                                        \
-  typ typ##_normalize(typ v) {                                                                                         \
-    typ result;                                                                                                        \
-    f32 length = typ##_length(v);                                                                                      \
+  _typ _typ##_normalize(_typ _v) {                                                                                     \
+    _typ _result;                                                                                                      \
+    f32 _length = _typ##_length(_v);                                                                                   \
                                                                                                                        \
-    if (length != 0) {                                                                                                 \
-      for (int i = 0; i < size; i++) {                                                                                 \
-        result.data[i] = v.data[i] / length;                                                                           \
+    if (_length != 0) {                                                                                                \
+      for (int _i = 0; _i < _size; _i++) {                                                                             \
+        _result.data[_i] = _v.data[_i] / _length;                                                                      \
       }                                                                                                                \
     }                                                                                                                  \
     else {                                                                                                             \
-      for (int i = 0; i < size; i++) {                                                                                 \
-        result.data[i] = 0;                                                                                            \
+      for (int _i = 0; _i < _size; _i++) {                                                                             \
+        _result.data[_i] = 0;                                                                                          \
       }                                                                                                                \
     }                                                                                                                  \
                                                                                                                        \
-    return result;                                                                                                     \
+    return _result;                                                                                                    \
   }
 
 void Mat4_identity(Mat4 *self);
@@ -135,14 +135,14 @@ void Mat4_print(const Mat4 *self);
 
 /* clang-format off */
 #define MAT4_INIT(\
-  self,\
-  v1x1, v1x2, v1x3, v1x4,\
-  v2x1, v2x2, v2x3, v2x4,\
-  v3x1, v3x2, v3x3, v3x4,\
-  v4x1, v4x2, v4x3, v4x4\
+  _self,\
+  _v1x1, _v1x2, _v1x3, _v1x4,\
+  _v2x1, _v2x2, _v2x3, _v2x4,\
+  _v3x1, _v3x2, _v3x3, _v3x4,\
+  _v4x1, _v4x2, _v4x3, _v4x4\
 ) \
-  self->m1x1 = v1x1; self->m1x2 = v1x2; self->m1x3 = v1x3; self->m1x4 = v1x4;\
-  self->m2x1 = v2x1; self->m2x2 = v2x2; self->m2x3 = v2x3; self->m2x4 = v2x4;\
-  self->m3x1 = v3x1; self->m3x2 = v3x2; self->m3x3 = v3x3; self->m3x4 = v3x4;\
-  self->m4x1 = v4x1; self->m4x2 = v4x2; self->m4x3 = v4x3; self->m4x4 = v4x4
+  _self->m1x1 = _v1x1; _self->m1x2 = _v1x2; _self->m1x3 = _v1x3; _self->m1x4 = _v1x4;\
+  _self->m2x1 = _v2x1; _self->m2x2 = _v2x2; _self->m2x3 = _v2x3; _self->m2x4 = _v2x4;\
+  _self->m3x1 = _v3x1; _self->m3x2 = _v3x2; _self->m3x3 = _v3x3; _self->m3x4 = _v3x4;\
+  _self->m4x1 = _v4x1; _self->m4x2 = _v4x2; _self->m4x3 = _v4x3; _self->m4x4 = _v4x4
 /* clang-format on */
