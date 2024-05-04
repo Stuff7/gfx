@@ -4,23 +4,28 @@
 #define SURF_SIZE 100
 static const uint CUBE_LEN = SURF_SIZE * SURF_SIZE;
 
-State StateNew() {
+static void processInput(State *state, Key key, KeyState keyState);
+static void draw(State *state);
+static void resize(State *state, int width, int height);
+static void mouseInput(State *state, f64 width, f64 height);
+
+State State_new() {
   State state;
   state.model = malloc(CUBE_LEN * sizeof(Transform));
   state.matrices = malloc((CUBE_LEN + 2) * sizeof(Mat4));
   state.colors = malloc(CUBE_LEN * sizeof(Color));
-  CameraNew(&state.camera, &state.matrices[CUBE_LEN], (Vec3){.z = 30.0}, (Vec3){}, (Vec3){.y = 1.0});
+  Camera_new(&state.camera, &state.matrices[CUBE_LEN], (Vec3){.z = 30.0}, (Vec3){}, (Vec3){.y = 1.0});
   state.proj = &state.matrices[CUBE_LEN + 1];
 
   return state;
 }
 
-Result *StateCreateScene(State *state, const char *windowTitle) {
+Result *State_createScene(State *state, const char *windowTitle) {
   int i = 0;
   for (int y = 0; y < SURF_SIZE; y += 1) {
     for (int x = 0; x < SURF_SIZE; x += 1) {
-      ColorSet(&state->colors[i], RAND(0, 255), RAND(0, 255), RAND(0, 255));
-      TransformNew(
+      Color_set(&state->colors[i], RAND(0, 255), RAND(0, 255), RAND(0, 255));
+      Transform_new(
           &state->model[i],
           &state->matrices[i],
           (Vec3){
@@ -33,7 +38,7 @@ Result *StateCreateScene(State *state, const char *windowTitle) {
     }
   }
 
-  TRY(WindowNew(
+  TRY(Window_new(
       state,
       windowTitle,
       WIN_WIDTH,
@@ -43,47 +48,47 @@ Result *StateCreateScene(State *state, const char *windowTitle) {
       (ResizeCallback)resize,
       (CursorCallback)mouseInput
   ));
-  TRY(ShaderNew(&state->shader, "shaders/vert.glsl", "shaders/frag.glsl"));
+  TRY(Shader_new(&state->shader, "shaders/vert.glsl", "shaders/frag.glsl"));
 
-  WindowSetCursor(state->cursor.x, state->cursor.y);
-  WindowCaptureCursor((state->cursor.capture = true));
+  Window_setCursor(state->cursor.x, state->cursor.y);
+  Window_captureCursor((state->cursor.capture = true));
 
-  Cube cube = CubeNew(1.f, 1.f, 1.f);
+  Cube cube = Cube_new(1.f, 1.f, 1.f);
   uint indices[CUBE_IDX_LEN];
-  CubeIndices(indices);
-  state->renderer = InstancedRendererNew(&cube, sizeof(cube), indices, sizeof(indices), CUBE_IDX_LEN, CUBE_LEN, true);
+  Cube_indices(indices);
+  state->renderer = InstancedRenderer_new(&cube, sizeof(cube), indices, sizeof(indices), CUBE_IDX_LEN, CUBE_LEN, true);
 
-  ShaderUse(state->shader);
-  CameraUpdateMatrix(&state->camera);
+  Shader_use(state->shader);
+  Camera_updateMatrix(&state->camera);
   resize(state, WIN_WIDTH, WIN_HEIGHT);
-  DataBufferSet(&state->renderer.models, CUBE_LEN, sizeof(Mat4), state->matrices);
-  DataBufferSet(&state->renderer.colors, CUBE_LEN, sizeof(Color), state->colors);
+  DataBuffer_set(&state->renderer.models, CUBE_LEN, sizeof(Mat4), state->matrices);
+  DataBuffer_set(&state->renderer.colors, CUBE_LEN, sizeof(Color), state->colors);
 
   return OK;
 }
 
-void StateDestroy(State *state) {
+void State_free(State *state) {
   free(state->model);
   free(state->matrices);
   free(state->colors);
-  ShaderDestroy(state->shader);
-  InstancedRendererDestroy(&state->renderer);
-  WindowDestroy();
+  Shader_free(state->shader);
+  InstancedRenderer_free(&state->renderer);
+  Window_free();
 }
 
-void draw(State *state) {
-  ShaderUse(state->shader);
-  ShaderUniformFloat(state->shader, "fTime", window.now);
-  ShaderUniformMat4(state->shader, "view", state->camera.matrix);
-  InstancedRendererDraw(&state->renderer);
+static void draw(State *state) {
+  Shader_use(state->shader);
+  Shader_uniformFloat(state->shader, "fTime", window.now);
+  Shader_uniformMat4(state->shader, "view", state->camera.matrix);
+  InstancedRenderer_draw(&state->renderer);
 }
 
-void resize(State *state, int width, int height) {
-  Mat4Perspective(state->proj, PI * .25f, (f32)width / (f32)height, .1f, 1000.f);
-  ShaderUniformMat4(state->shader, "proj", state->proj);
+static void resize(State *state, int width, int height) {
+  Mat4_perspective(state->proj, PI * .25f, (f32)width / (f32)height, .1f, 1000.f);
+  Shader_uniformMat4(state->shader, "proj", state->proj);
 }
 
-void mouseInput(State *state, f64 x, f64 y) {
+static void mouseInput(State *state, f64 x, f64 y) {
   float xoffset = x - state->cursor.x;
   float yoffset = state->cursor.y - y;
   state->cursor.x = x;
@@ -95,21 +100,21 @@ void mouseInput(State *state, f64 x, f64 y) {
   xoffset *= sensitivity;
   yoffset *= sensitivity;
 
-  CameraRotate(&state->camera, xoffset, yoffset, 0.0f);
-  CameraUpdateMatrix(&state->camera);
+  Camera_rotate(&state->camera, xoffset, yoffset, 0.0f);
+  Camera_updateMatrix(&state->camera);
 }
 
-void processInput(State *state, Key key, KeyState keyState) {
+static void processInput(State *state, Key key, KeyState keyState) {
   if (keyState == KeyState_Release) { return; }
   Transform *cube = &state->model[state->idx];
   const f32 moveSpeed = 3.0f;
 
   switch (key) {
     case Key_Q:
-      WindowClose();
+      Window_close();
       return;
     case Key_Escape:
-      WindowCaptureCursor((state->cursor.capture = !state->cursor.capture));
+      Window_captureCursor((state->cursor.capture = !state->cursor.capture));
       return;
     case Key_Up:
       cube->position.y += moveSpeed;
@@ -124,19 +129,19 @@ void processInput(State *state, Key key, KeyState keyState) {
       cube->position.x += moveSpeed;
       break;
     case Key_X:
-      QuatRotateX(&cube->rotation, 0.08f);
+      Quat_rotateX(&cube->rotation, 0.08f);
       break;
     case Key_Y:
-      QuatRotateY(&cube->rotation, 0.08f);
+      Quat_rotateY(&cube->rotation, 0.08f);
       break;
     case Key_Z:
-      QuatRotateZ(&cube->rotation, 0.08f);
+      Quat_rotateZ(&cube->rotation, 0.08f);
       break;
     case Key_Kp_Add:
-      cube->scale = Vec3ScalarMul(cube->scale, 1.05);
+      cube->scale = Vec3_scalarMul(cube->scale, 1.05);
       break;
     case Key_Kp_Subtract:
-      cube->scale = Vec3ScalarMul(cube->scale, 0.95);
+      cube->scale = Vec3_scalarMul(cube->scale, 0.95);
       break;
     case Key_I:
       cube->scale.y += 0.05;
@@ -157,20 +162,20 @@ void processInput(State *state, Key key, KeyState keyState) {
       cube->scale.z += 0.05;
       break;
     case Key_W:
-      CameraMove(&state->camera, (Vec3){.z = 1.f}, moveSpeed);
-      CameraUpdateMatrix(&state->camera);
+      Camera_move(&state->camera, (Vec3){.z = 1.f}, moveSpeed);
+      Camera_updateMatrix(&state->camera);
       return;
     case Key_A:
-      CameraMove(&state->camera, (Vec3){.x = -1.f}, moveSpeed);
-      CameraUpdateMatrix(&state->camera);
+      Camera_move(&state->camera, (Vec3){.x = -1.f}, moveSpeed);
+      Camera_updateMatrix(&state->camera);
       return;
     case Key_S:
-      CameraMove(&state->camera, (Vec3){.z = -1.f}, moveSpeed);
-      CameraUpdateMatrix(&state->camera);
+      Camera_move(&state->camera, (Vec3){.z = -1.f}, moveSpeed);
+      Camera_updateMatrix(&state->camera);
       return;
     case Key_D:
-      CameraMove(&state->camera, (Vec3){.x = 1.f}, moveSpeed);
-      CameraUpdateMatrix(&state->camera);
+      Camera_move(&state->camera, (Vec3){.x = 1.f}, moveSpeed);
+      Camera_updateMatrix(&state->camera);
       return;
     case Key_P:
       printf("CURSOR: %.2f\t%.2f\n", state->cursor.x, state->cursor.y);
@@ -209,6 +214,6 @@ void processInput(State *state, Key key, KeyState keyState) {
       return;
   }
 
-  Mat4Transform(cube->matrix, cube);
-  DataBufferSliceSet(&state->renderer.models, state->idx * sizeof(Mat4), sizeof(Mat4), state->matrices);
+  Mat4_transform(cube->matrix, cube);
+  DataBuffer_sliceSet(&state->renderer.models, state->idx * sizeof(Mat4), sizeof(Mat4), state->matrices);
 }

@@ -1,6 +1,6 @@
 #include "math.h"
 
-Quad QuadNew(f32 w, f32 h) {
+Quad Quad_new(f32 w, f32 h) {
   w *= 0.5f;
   h *= 0.5f;
   return (Quad){
@@ -11,7 +11,7 @@ Quad QuadNew(f32 w, f32 h) {
   };
 }
 
-void QuadIndices(uint *indices) {
+void Quad_indices(uint *indices) {
   indices[0] = 0;
   indices[1] = 1;
   indices[2] = 2;
@@ -20,7 +20,7 @@ void QuadIndices(uint *indices) {
   indices[5] = 0;
 }
 
-Cube CubeNew(f32 width, f32 height, f32 depth) {
+Cube Cube_new(f32 width, f32 height, f32 depth) {
   width *= 0.5f;
   height *= 0.5f;
   depth *= 0.5f;
@@ -37,7 +37,7 @@ Cube CubeNew(f32 width, f32 height, f32 depth) {
   };
 }
 
-void CubeIndices(uint *indices) {
+void Cube_indices(uint *indices) {
   // Front face
   indices[0] = 0;
   indices[1] = 1;
@@ -87,7 +87,7 @@ void CubeIndices(uint *indices) {
   indices[35] = 1;
 }
 
-void ColorSet(Color *c, u8 r, u8 g, u8 b) {
+void Color_set(Color *c, u8 r, u8 g, u8 b) {
   c->r = r;
   c->g = g;
   c->b = b;

@@ -1,35 +1,35 @@
 #include "tables.h"
 
-Result *TableDirParse(TableDir *self, Bitstream *bs) {
-  TRY(BitstreamSlice(&self->bs, bs, 0, bs->size));
-  TRY(BitstreamReadU32(&self->bs, &self->sfntVersion));
-  TRY(BitstreamReadU16(&self->bs, &self->numTables));
-  TRY(BitstreamReadU16(&self->bs, &self->searchRange));
-  TRY(BitstreamReadU16(&self->bs, &self->entrySelector));
-  TRY(BitstreamReadU16(&self->bs, &self->rangeShift));
+Result *TableDir_parse(TableDir *self, Bitstream *bs) {
+  TRY(Bitstream_slice(&self->bs, bs, 0, bs->size));
+  TRY(Bitstream_readU32(&self->bs, &self->sfntVersion));
+  TRY(Bitstream_readU16(&self->bs, &self->numTables));
+  TRY(Bitstream_readU16(&self->bs, &self->searchRange));
+  TRY(Bitstream_readU16(&self->bs, &self->entrySelector));
+  TRY(Bitstream_readU16(&self->bs, &self->rangeShift));
 
   for (int i = 0; i < self->numTables; i++) {
     TableTag tag;
-    TRY(TableTagParse(&tag, &self->bs));
+    TRY(TableTag_parse(&tag, &self->bs));
     if (tag == TableTag_Unknown) {
-      BitstreamSkip(&self->bs, sizeof(TableRecord));
+      Bitstream_skip(&self->bs, sizeof(TableRecord));
       continue;
     }
     TableRecord *record = &self->tableRecords[tag];
-    TRY(TableRecordParse(record, &self->bs));
+    TRY(TableRecord_parse(record, &self->bs));
   }
 
   return OK;
 }
 
-Result *TableDirFindTable(TableDir *self, TableTag tag, Bitstream *bs) {
+Result *TableDir_findTable(TableDir *self, TableTag tag, Bitstream *bs) {
   TableRecord *record = &self->tableRecords[tag];
-  return BitstreamSlice(bs, &self->bs, record->offset, record->length);
+  return Bitstream_slice(bs, &self->bs, record->offset, record->length);
 }
 
-Result *TableTagParse(TableTag *tableTag, Bitstream *bs) {
+Result *TableTag_parse(TableTag *tableTag, Bitstream *bs) {
   Tag tag;
-  TRY(BitstreamReadTag(bs, tag));
+  TRY(Bitstream_readTag(bs, tag));
 
   if (streq(tag, "GDEF")) { *tableTag = TableTag_GDEF; }
   else if (streq(tag, "GPOS")) { *tableTag = TableTag_GPOS; }
@@ -54,9 +54,9 @@ Result *TableTagParse(TableTag *tableTag, Bitstream *bs) {
   return OK;
 }
 
-Result *TableRecordParse(TableRecord *record, Bitstream *bs) {
-  TRY(BitstreamReadU32(bs, &record->checksum));
-  TRY(BitstreamReadU32(bs, &record->offset));
-  TRY(BitstreamReadU32(bs, &record->length));
+Result *TableRecord_parse(TableRecord *record, Bitstream *bs) {
+  TRY(Bitstream_readU32(bs, &record->checksum));
+  TRY(Bitstream_readU32(bs, &record->offset));
+  TRY(Bitstream_readU32(bs, &record->length));
   return OK;
 }

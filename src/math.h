@@ -13,6 +13,7 @@ typedef union {
   struct {
     f32 x, y, z;
   };
+
   f32 data[3];
 } Vec3;
 
@@ -20,6 +21,7 @@ typedef union {
   struct {
     f32 x, y, z, w;
   };
+
   f32 data[4];
   Vec3 xyz;
 } Vec4;
@@ -28,6 +30,7 @@ typedef union {
   struct {
     u8 r, g, b;
   };
+
   u8 rgb[3];
 } Color;
 
@@ -53,6 +56,7 @@ typedef union {
     f32 m1x3, m2x3, m3x3, m4x3;
     f32 m1x4, m2x4, m3x4, m4x4;
   };
+
   f32 data[4 * 4];
   f32 data2d[4][4];
   Vec4 rows[4];
@@ -64,36 +68,36 @@ typedef struct {
   Mat4 *matrix;
 } Transform;
 
-void TransformNew(Transform *self, Mat4 *matrix, Vec3 position, Vec3 scale, Vec3 angle);
+void Transform_new(Transform *self, Mat4 *matrix, Vec3 position, Vec3 scale, Vec3 angle);
 #define QUAD_IDX_LEN 6
-void ColorSet(Color *c, u8 r, u8 g, u8 b);
-Quad QuadNew(f32 w, f32 h);
-void QuadIndices(uint *indices);
+void Color_set(Color *c, u8 r, u8 g, u8 b);
+Quad Quad_new(f32 w, f32 h);
+void Quad_indices(uint *indices);
 #define CUBE_IDX_LEN 36
-Cube CubeNew(f32 width, f32 height, f32 depth);
-void CubeIndices(uint *indices);
+Cube Cube_new(f32 width, f32 height, f32 depth);
+void Cube_indices(uint *indices);
 
-Vec4 Vec4New(f32 x, f32 y, f32 z, f32 w);
-Vec4 Vec4Normalize(Vec4 v);
-Vec4 Vec4Mat4Multiply(Vec4 v, Mat4 m);
-f32 Vec4Dot(Vec4 a, Vec4 b);
+Vec4 Vec4_new(f32 x, f32 y, f32 z, f32 w);
+Vec4 Vec4_normalize(Vec4 v);
+Vec4 Vec4_mat4Multiply(Vec4 v, Mat4 m);
+f32 Vec4_dot(Vec4 a, Vec4 b);
 
-Vec3 Vec3Normalize(Vec3 v);
-Vec3 Vec3Add(Vec3 a, Vec3 b);
-Vec3 Vec3ScalarMul(Vec3 v, float scalar);
-Vec3 Vec3Sub(Vec3 a, Vec3 b);
-Vec3 Vec3Cross(Vec3 a, Vec3 b);
-Vec3 Vec3Mat4Multiply(Vec3 v, Mat4 m);
-f32 Vec3Dot(Vec3 a, Vec3 b);
+Vec3 Vec3_normalize(Vec3 v);
+Vec3 Vec3_add(Vec3 a, Vec3 b);
+Vec3 Vec3_scalarMul(Vec3 v, float scalar);
+Vec3 Vec3_sub(Vec3 a, Vec3 b);
+Vec3 Vec3_cross(Vec3 a, Vec3 b);
+Vec3 Vec3_mat4Multiply(Vec3 v, Mat4 m);
+f32 Vec3_dot(Vec3 a, Vec3 b);
 
-Vec4 QuatNew(Vec3 euler_angles);
-void QuatRotateX(Vec4 *quat, f32 angle);
-void QuatRotateY(Vec4 *quat, f32 angle);
-void QuatRotateZ(Vec4 *quat, f32 angle);
-Mat4 QuatToMat4(Vec4 q);
+Vec4 Quat_new(Vec3 euler_angles);
+void Quat_rotateX(Vec4 *quat, f32 angle);
+void Quat_rotateY(Vec4 *quat, f32 angle);
+void Quat_rotateZ(Vec4 *quat, f32 angle);
+Mat4 Quat_toMat4(Vec4 q);
 
 #define DEF_VEC_NORMALIZE(typ, size)                                                                                   \
-  f32 typ##Length(typ v) {                                                                                             \
+  f32 typ##_length(typ v) {                                                                                            \
     f32 sum = 0;                                                                                                       \
     for (int i = 0; i < size; i++) {                                                                                   \
       sum += v.data[i] * v.data[i];                                                                                    \
@@ -101,15 +105,16 @@ Mat4 QuatToMat4(Vec4 q);
     return sqrt(sum);                                                                                                  \
   }                                                                                                                    \
                                                                                                                        \
-  typ typ##Normalize(typ v) {                                                                                          \
+  typ typ##_normalize(typ v) {                                                                                         \
     typ result;                                                                                                        \
-    f32 length = typ##Length(v);                                                                                       \
+    f32 length = typ##_length(v);                                                                                      \
                                                                                                                        \
     if (length != 0) {                                                                                                 \
       for (int i = 0; i < size; i++) {                                                                                 \
         result.data[i] = v.data[i] / length;                                                                           \
       }                                                                                                                \
-    } else {                                                                                                           \
+    }                                                                                                                  \
+    else {                                                                                                             \
       for (int i = 0; i < size; i++) {                                                                                 \
         result.data[i] = 0;                                                                                            \
       }                                                                                                                \
@@ -118,15 +123,15 @@ Mat4 QuatToMat4(Vec4 q);
     return result;                                                                                                     \
   }
 
-void Mat4Identity(Mat4 *self);
-void Mat4LookAt(Mat4 *self, Vec3 eye, Vec3 center, Vec3 up);
-void Mat4Perspective(Mat4 *self, f32 fov, f32 aspect, f32 near, f32 far);
-void Mat4Scale(Mat4 *self, Vec3 scale);
-void Mat4Rotate(Mat4 *self, Vec4 quat);
-void Mat4Translate(Mat4 *self, Vec3 translation);
-void Mat4Transform(Mat4 *self, const Transform *t);
-void Mat4Multiply(Mat4 *a, const Mat4 *b);
-void Mat4Print(const Mat4 *self);
+void Mat4_identity(Mat4 *self);
+void Mat4_lookAt(Mat4 *self, Vec3 eye, Vec3 center, Vec3 up);
+void Mat4_perspective(Mat4 *self, f32 fov, f32 aspect, f32 near, f32 far);
+void Mat4_scale(Mat4 *self, Vec3 scale);
+void Mat4_rotate(Mat4 *self, Vec4 quat);
+void Mat4_translate(Mat4 *self, Vec3 translation);
+void Mat4_transform(Mat4 *self, const Transform *t);
+void Mat4_multiply(Mat4 *a, const Mat4 *b);
+void Mat4_print(const Mat4 *self);
 
 /* clang-format off */
 #define MAT4_INIT(\

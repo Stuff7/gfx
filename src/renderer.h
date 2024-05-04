@@ -30,7 +30,7 @@ typedef struct {
 
 extern Window window;
 
-Result *WindowNew(
+Result *Window_new(
     void *context,
     const char *title,
     int w,
@@ -40,20 +40,20 @@ Result *WindowNew(
     ResizeCallback resize,
     CursorCallback cursor
 );
-void WindowSetCursor(f64 x, f64 y);
-void WindowRun();
-void WindowCaptureCursor(bool capture);
-void WindowClose();
-void WindowDestroy();
+void Window_setCursor(f64 x, f64 y);
+void Window_run();
+void Window_captureCursor(bool capture);
+void Window_close();
+void Window_free();
 
 /* ---------------- Shader ---------------- */
-Result *ShaderNew(uint *shader, const char *vert, const char *frag);
-void ShaderUse(uint shader);
-void ShaderDestroy(uint shader);
+Result *Shader_new(uint *shader, const char *vert, const char *frag);
+void Shader_use(uint shader);
+void Shader_free(uint shader);
 
-void ShaderUniformMat4(uint shader, const char *name, const Mat4 *matrix);
-void ShaderUniformVec4(uint shader, const char *name, f32 x, f32 y, f32 z, f32 w);
-void ShaderUniformFloat(uint shader, const char *name, f32 x);
+void Shader_uniformMat4(uint shader, const char *name, const Mat4 *matrix);
+void Shader_uniformVec4(uint shader, const char *name, f32 x, f32 y, f32 z, f32 w);
+void Shader_uniformFloat(uint shader, const char *name, f32 x);
 
 /* ---------------- Buffer Object ---------------- */
 typedef enum {
@@ -71,9 +71,9 @@ typedef struct {
   BufferType type;
 } Buffer;
 
-void VAONew(uint *vao);
-void VAOBind(uint vao);
-void VAOAttrib(
+void VAO_new(uint *vao);
+void VAO_bind(uint vao);
+void VAO_attrib(
     uint vao,
     Buffer *buf,
     int layout,
@@ -83,17 +83,17 @@ void VAOAttrib(
     int stride,
     uintptr offset
 );
-void VAOAttribDivisor(uint vao, Buffer *buf, int layout, int divisor);
-void VAODestroy(uint *vao);
+void VAO_attribDivisor(uint vao, Buffer *buf, int layout, int divisor);
+void VAO_free(uint *vao);
 
-Buffer BufferNew(BufferType type);
-void BufferBind(Buffer *buf);
-void BufferData(Buffer *buf, int size, const void *data, bool dynamic);
-void BufferSubData(Buffer *buf, int offset, int size, const void *data);
-void BufferDestroy(Buffer *buf);
+Buffer Buffer_new(BufferType type);
+void Buffer_bind(Buffer *buf);
+void Buffer_data(Buffer *buf, int size, const void *data, bool dynamic);
+void Buffer_subData(Buffer *buf, int offset, int size, const void *data);
+void Buffer_free(Buffer *buf);
 
-void DrawElements(int numIndex);
-void DrawElementsInstanced(int numIndices, int numInstances);
+void VAO_drawElements(int numIndex);
+void VAO_drawElementsInstanced(int numIndices, int numInstances);
 
 typedef struct {
   Buffer buf;
@@ -107,11 +107,11 @@ typedef struct {
   uint indicesLen;
 } InstancedRenderer;
 
-void DataBufferSet(DataBuffer *dbo, uint len, uint instanceSize, void *data);
-void DataBufferSliceSet(DataBuffer *dbo, uint offset, uint size, void *data);
+void DataBuffer_set(DataBuffer *dbo, uint len, uint instanceSize, void *data);
+void DataBuffer_sliceSet(DataBuffer *dbo, uint offset, uint size, void *data);
 
 /* ---------------- Renderer ---------------- */
-InstancedRenderer InstancedRendererNew(
+InstancedRenderer InstancedRenderer_new(
     const void *vertices,
     uint verticesSize,
     const uint *indices,
@@ -120,8 +120,8 @@ InstancedRenderer InstancedRendererNew(
     uint maxInstances,
     bool dynamic
 );
-void InstancedRendererDraw(InstancedRenderer *self);
-void InstancedRendererDestroy(InstancedRenderer *self);
+void InstancedRenderer_draw(InstancedRenderer *self);
+void InstancedRenderer_free(InstancedRenderer *self);
 
 /* ---------------- Camera ---------------- */
 typedef struct {
@@ -133,7 +133,7 @@ typedef struct {
   Mat4 *matrix;
 } Camera;
 
-void CameraNew(Camera *camera, Mat4 *matrix, Vec3 position, Vec3 target, Vec3 up);
-void CameraMove(Camera *camera, Vec3 direction, float speed);
-void CameraRotate(Camera *camera, float pitch, float yaw, float roll);
-void CameraUpdateMatrix(Camera *camera);
+void Camera_new(Camera *camera, Mat4 *matrix, Vec3 position, Vec3 target, Vec3 up);
+void Camera_move(Camera *camera, Vec3 direction, float speed);
+void Camera_rotate(Camera *camera, float pitch, float yaw, float roll);
+void Camera_updateMatrix(Camera *camera);

@@ -1,53 +1,53 @@
 #include "tables.h"
 
-Result *OS2TableParse(OS2Table *self, Bitstream *bs) {
-  TRY(BitstreamReadU16(bs, &self->version));
-  TRY(BitstreamReadI16(bs, &self->xAvgCharWidth));
-  TRY(BitstreamReadU16(bs, &self->usWeightClass));
-  TRY(BitstreamReadU16(bs, &self->usWidthClass));
-  TRY(BitstreamReadU16(bs, &self->fsType));
-  TRY(BitstreamReadI16(bs, &self->ySubscriptXSize));
-  TRY(BitstreamReadI16(bs, &self->ySubscriptYSize));
-  TRY(BitstreamReadI16(bs, &self->ySubscriptXOffset));
-  TRY(BitstreamReadI16(bs, &self->ySubscriptYOffset));
-  TRY(BitstreamReadI16(bs, &self->ySuperscriptXSize));
-  TRY(BitstreamReadI16(bs, &self->ySuperscriptYSize));
-  TRY(BitstreamReadI16(bs, &self->ySuperscriptXOffset));
-  TRY(BitstreamReadI16(bs, &self->ySuperscriptYOffset));
-  TRY(BitstreamReadI16(bs, &self->yStrikeoutSize));
-  TRY(BitstreamReadI16(bs, &self->yStrikeoutPosition));
-  TRY(BitstreamReadI16(bs, &self->sFamilyClass));
-  TRY(BitstreamReadBuf(bs, self->panose, 10));
-  TRY(BitstreamReadU32(bs, &self->ulUnicodeRange1));
-  TRY(BitstreamReadU32(bs, &self->ulUnicodeRange2));
-  TRY(BitstreamReadU32(bs, &self->ulUnicodeRange3));
-  TRY(BitstreamReadU32(bs, &self->ulUnicodeRange4));
-  TRY(BitstreamReadTag(bs, self->achVendID));
-  TRY(BitstreamReadU16(bs, &self->fsSelection));
-  TRY(BitstreamReadU16(bs, &self->usFirstCharIndex));
-  TRY(BitstreamReadU16(bs, &self->usLastCharIndex));
-  TRY(BitstreamReadI16(bs, &self->sTypoAscender));
-  TRY(BitstreamReadI16(bs, &self->sTypoDescender));
-  TRY(BitstreamReadI16(bs, &self->sTypoLineGap));
-  TRY(BitstreamReadU16(bs, &self->usWinAscent));
-  TRY(BitstreamReadU16(bs, &self->usWinDescent));
+Result *OS2Table_parse(OS2Table *self, Bitstream *bs) {
+  TRY(Bitstream_readU16(bs, &self->version));
+  TRY(Bitstream_readI16(bs, &self->xAvgCharWidth));
+  TRY(Bitstream_readU16(bs, &self->usWeightClass));
+  TRY(Bitstream_readU16(bs, &self->usWidthClass));
+  TRY(Bitstream_readU16(bs, &self->fsType));
+  TRY(Bitstream_readI16(bs, &self->ySubscriptXSize));
+  TRY(Bitstream_readI16(bs, &self->ySubscriptYSize));
+  TRY(Bitstream_readI16(bs, &self->ySubscriptXOffset));
+  TRY(Bitstream_readI16(bs, &self->ySubscriptYOffset));
+  TRY(Bitstream_readI16(bs, &self->ySuperscriptXSize));
+  TRY(Bitstream_readI16(bs, &self->ySuperscriptYSize));
+  TRY(Bitstream_readI16(bs, &self->ySuperscriptXOffset));
+  TRY(Bitstream_readI16(bs, &self->ySuperscriptYOffset));
+  TRY(Bitstream_readI16(bs, &self->yStrikeoutSize));
+  TRY(Bitstream_readI16(bs, &self->yStrikeoutPosition));
+  TRY(Bitstream_readI16(bs, &self->sFamilyClass));
+  TRY(Bitstream_readBuf(bs, self->panose, 10));
+  TRY(Bitstream_readU32(bs, &self->ulUnicodeRange1));
+  TRY(Bitstream_readU32(bs, &self->ulUnicodeRange2));
+  TRY(Bitstream_readU32(bs, &self->ulUnicodeRange3));
+  TRY(Bitstream_readU32(bs, &self->ulUnicodeRange4));
+  TRY(Bitstream_readTag(bs, self->achVendID));
+  TRY(Bitstream_readU16(bs, &self->fsSelection));
+  TRY(Bitstream_readU16(bs, &self->usFirstCharIndex));
+  TRY(Bitstream_readU16(bs, &self->usLastCharIndex));
+  TRY(Bitstream_readI16(bs, &self->sTypoAscender));
+  TRY(Bitstream_readI16(bs, &self->sTypoDescender));
+  TRY(Bitstream_readI16(bs, &self->sTypoLineGap));
+  TRY(Bitstream_readU16(bs, &self->usWinAscent));
+  TRY(Bitstream_readU16(bs, &self->usWinDescent));
   switch (self->version) {
     case 1:
-      TRY(BitstreamReadU32(bs, &self->ulCodePageRange1));
-      TRY(BitstreamReadU32(bs, &self->ulCodePageRange2));
+      TRY(Bitstream_readU32(bs, &self->ulCodePageRange1));
+      TRY(Bitstream_readU32(bs, &self->ulCodePageRange2));
       break;
     case 2:
     case 3:
     case 4:
-      TRY(BitstreamReadI16(bs, &self->sxHeight));
-      TRY(BitstreamReadI16(bs, &self->sCapHeight));
-      TRY(BitstreamReadU16(bs, &self->usDefaultChar));
-      TRY(BitstreamReadU16(bs, &self->usBreakChar));
-      TRY(BitstreamReadU16(bs, &self->usMaxContext));
+      TRY(Bitstream_readI16(bs, &self->sxHeight));
+      TRY(Bitstream_readI16(bs, &self->sCapHeight));
+      TRY(Bitstream_readU16(bs, &self->usDefaultChar));
+      TRY(Bitstream_readU16(bs, &self->usBreakChar));
+      TRY(Bitstream_readU16(bs, &self->usMaxContext));
       break;
     case 5:
-      TRY(BitstreamReadU16(bs, &self->usLowerOpticalPointSize));
-      TRY(BitstreamReadU16(bs, &self->usUpperOpticalPointSize));
+      TRY(Bitstream_readU16(bs, &self->usLowerOpticalPointSize));
+      TRY(Bitstream_readU16(bs, &self->usUpperOpticalPointSize));
       break;
   }
 

@@ -1,102 +1,102 @@
 #include "tables.h"
 #include "types.h"
 
-Result *GDEFTableParse(GDEFTable *self, Bitstream *bs) {
-  TRY(BitstreamReadU16(bs, &self->majorVersion));
-  TRY(BitstreamReadU16(bs, &self->minorVersion));
-  TRY(BitstreamReadU16(bs, &self->glyphClassDefOffset));
-  TRY(BitstreamReadU16(bs, &self->attachListOffset));
-  TRY(BitstreamReadU16(bs, &self->ligCaretListOffset));
-  TRY(BitstreamReadU16(bs, &self->markAttachClassDefOffset));
+Result *GDEFTable_parse(GDEFTable *self, Bitstream *bs) {
+  TRY(Bitstream_readU16(bs, &self->majorVersion));
+  TRY(Bitstream_readU16(bs, &self->minorVersion));
+  TRY(Bitstream_readU16(bs, &self->glyphClassDefOffset));
+  TRY(Bitstream_readU16(bs, &self->attachListOffset));
+  TRY(Bitstream_readU16(bs, &self->ligCaretListOffset));
+  TRY(Bitstream_readU16(bs, &self->markAttachClassDefOffset));
 
   switch (self->minorVersion) {
     case 2:
-      TRY(BitstreamReadU16(bs, &self->markGlyphSetsDefOffset));
+      TRY(Bitstream_readU16(bs, &self->markGlyphSetsDefOffset));
       break;
     case 3:
-      TRY(BitstreamReadU16(bs, &self->itemVarStoreOffset));
+      TRY(Bitstream_readU16(bs, &self->itemVarStoreOffset));
       break;
   }
   return OK;
 }
 
-Result *GPOSTableParse(GPOSTable *self, Bitstream *bs) {
-  TRY(BitstreamReadU16(bs, &self->majorVersion));
-  TRY(BitstreamReadU16(bs, &self->minorVersion));
-  TRY(BitstreamReadU16(bs, &self->scriptListOffset));
-  TRY(BitstreamReadU16(bs, &self->featureListOffset));
-  TRY(BitstreamReadU16(bs, &self->lookupListOffset));
+Result *GPOSTable_parse(GPOSTable *self, Bitstream *bs) {
+  TRY(Bitstream_readU16(bs, &self->majorVersion));
+  TRY(Bitstream_readU16(bs, &self->minorVersion));
+  TRY(Bitstream_readU16(bs, &self->scriptListOffset));
+  TRY(Bitstream_readU16(bs, &self->featureListOffset));
+  TRY(Bitstream_readU16(bs, &self->lookupListOffset));
 
-  if (self->minorVersion == 1) { TRY(BitstreamReadU32(bs, &self->featureVariationsOffset)); }
+  if (self->minorVersion == 1) { TRY(Bitstream_readU32(bs, &self->featureVariationsOffset)); }
   return OK;
 }
 
-Result *CvtTableParse(CvtTable *self, Bitstream *bs) {
+Result *CvtTable_parse(CvtTable *self, Bitstream *bs) {
   self->size = bs->size / sizeof(i16);
   ASSERT_ALLOC(i16, self->size, self->instructions);
   for (u32 i = 0; i < self->size; i++) {
-    TRY(BitstreamReadI16(bs, &self->instructions[i]));
+    TRY(Bitstream_readI16(bs, &self->instructions[i]));
   }
 
   return OK;
 }
 
-void CvtTableFree(CvtTable *self) { free(self->instructions); }
+void CvtTable_free(CvtTable *self) { free(self->instructions); }
 
-Result *FpgmTableParse(FpgmTable *self, Bitstream *bs) {
+Result *FpgmTable_parse(FpgmTable *self, Bitstream *bs) {
   self->size = bs->size;
   ASSERT_ALLOC(u8, self->size, self->instructions);
-  TRY(BitstreamReadBuf(bs, self->instructions, self->size));
+  TRY(Bitstream_readBuf(bs, self->instructions, self->size));
 
   return OK;
 }
 
-void FpgmTableFree(FpgmTable *self) { free(self->instructions); }
+void FpgmTable_free(FpgmTable *self) { free(self->instructions); }
 
-Result *MaxpTableParse(MaxpTable *self, Bitstream *bs) {
-  TRY(BitstreamReadU32(bs, &self->version));
-  TRY(BitstreamReadU16(bs, &self->numGlyphs));
+Result *MaxpTable_parse(MaxpTable *self, Bitstream *bs) {
+  TRY(Bitstream_readU32(bs, &self->version));
+  TRY(Bitstream_readU16(bs, &self->numGlyphs));
 
   if (self->version == 0x00010000) {
-    TRY(BitstreamReadU16(bs, &self->maxPoints));
-    TRY(BitstreamReadU16(bs, &self->maxContours));
-    TRY(BitstreamReadU16(bs, &self->maxCompositePoints));
-    TRY(BitstreamReadU16(bs, &self->maxCompositeContours));
-    TRY(BitstreamReadU16(bs, &self->maxZones));
-    TRY(BitstreamReadU16(bs, &self->maxTwilightPoints));
-    TRY(BitstreamReadU16(bs, &self->maxStorage));
-    TRY(BitstreamReadU16(bs, &self->maxFunctionDefs));
-    TRY(BitstreamReadU16(bs, &self->maxInstructionDefs));
-    TRY(BitstreamReadU16(bs, &self->maxStackElements));
-    TRY(BitstreamReadU16(bs, &self->maxSizeOfInstructions));
-    TRY(BitstreamReadU16(bs, &self->maxComponentElements));
-    TRY(BitstreamReadU16(bs, &self->maxComponentDepth));
+    TRY(Bitstream_readU16(bs, &self->maxPoints));
+    TRY(Bitstream_readU16(bs, &self->maxContours));
+    TRY(Bitstream_readU16(bs, &self->maxCompositePoints));
+    TRY(Bitstream_readU16(bs, &self->maxCompositeContours));
+    TRY(Bitstream_readU16(bs, &self->maxZones));
+    TRY(Bitstream_readU16(bs, &self->maxTwilightPoints));
+    TRY(Bitstream_readU16(bs, &self->maxStorage));
+    TRY(Bitstream_readU16(bs, &self->maxFunctionDefs));
+    TRY(Bitstream_readU16(bs, &self->maxInstructionDefs));
+    TRY(Bitstream_readU16(bs, &self->maxStackElements));
+    TRY(Bitstream_readU16(bs, &self->maxSizeOfInstructions));
+    TRY(Bitstream_readU16(bs, &self->maxComponentElements));
+    TRY(Bitstream_readU16(bs, &self->maxComponentDepth));
   }
 
   return OK;
 }
 
-Result *HeadTableParse(HeadTable *self, Bitstream *bs) {
-  TRY(BitstreamReadU16(bs, &self->majorVersion));
-  TRY(BitstreamReadU16(bs, &self->minorVersion));
-  TRY(BitstreamReadI32(bs, &self->fontRevision));
-  TRY(BitstreamReadU32(bs, &self->checksumAdjustment));
-  TRY(BitstreamReadU32(bs, &self->magicNumber));
-  TRY(BitstreamReadU16(bs, &self->flags));
-  TRY(BitstreamReadU16(bs, &self->unitsPerEm));
-  TRY(BitstreamReadI64(bs, &self->created));
-  TRY(BitstreamReadI64(bs, &self->modified));
-  TRY(BitstreamReadI16(bs, &self->xMin));
-  TRY(BitstreamReadI16(bs, &self->yMin));
-  TRY(BitstreamReadI16(bs, &self->xMax));
-  TRY(BitstreamReadI16(bs, &self->yMax));
-  TRY(BitstreamReadU16(bs, &self->macStyle));
-  TRY(BitstreamReadU16(bs, &self->lowestRecPPEM));
-  TRY(BitstreamReadI16(bs, &self->fontDirectionHint));
+Result *HeadTable_parse(HeadTable *self, Bitstream *bs) {
+  TRY(Bitstream_readU16(bs, &self->majorVersion));
+  TRY(Bitstream_readU16(bs, &self->minorVersion));
+  TRY(Bitstream_readI32(bs, &self->fontRevision));
+  TRY(Bitstream_readU32(bs, &self->checksumAdjustment));
+  TRY(Bitstream_readU32(bs, &self->magicNumber));
+  TRY(Bitstream_readU16(bs, &self->flags));
+  TRY(Bitstream_readU16(bs, &self->unitsPerEm));
+  TRY(Bitstream_readI64(bs, &self->created));
+  TRY(Bitstream_readI64(bs, &self->modified));
+  TRY(Bitstream_readI16(bs, &self->xMin));
+  TRY(Bitstream_readI16(bs, &self->yMin));
+  TRY(Bitstream_readI16(bs, &self->xMax));
+  TRY(Bitstream_readI16(bs, &self->yMax));
+  TRY(Bitstream_readU16(bs, &self->macStyle));
+  TRY(Bitstream_readU16(bs, &self->lowestRecPPEM));
+  TRY(Bitstream_readI16(bs, &self->fontDirectionHint));
   i16 locFormat;
-  TRY(BitstreamReadI16(bs, &locFormat));
+  TRY(Bitstream_readI16(bs, &locFormat));
   self->indexToLocFormat = (LocFormat)locFormat;
-  TRY(BitstreamReadI16(bs, &self->glyphDataFormat));
+  TRY(Bitstream_readI16(bs, &self->glyphDataFormat));
 
   return OK;
 }

@@ -1,22 +1,22 @@
 #include "tables.h"
 
-Result *GaspTableParse(GaspTable *self, Bitstream *bs) {
-  TRY(BitstreamReadU16(bs, &self->version));
-  TRY(BitstreamReadU16(bs, &self->numRanges));
+Result *GaspTable_parse(GaspTable *self, Bitstream *bs) {
+  TRY(Bitstream_readU16(bs, &self->version));
+  TRY(Bitstream_readU16(bs, &self->numRanges));
 
   ASSERT_ALLOC(GaspRange, self->numRanges, self->gaspRanges);
   for (int i = 0; i < self->numRanges; i++) {
-    GaspRangeParse(&self->gaspRanges[i], bs);
+    GaspRange_parse(&self->gaspRanges[i], bs);
   }
 
   return OK;
 }
 
-Result *GaspRangeParse(GaspRange *self, Bitstream *bs) {
-  TRY(BitstreamReadU16(bs, &self->rangeMaxPPEM));
-  TRY(BitstreamReadU16(bs, &self->rangeGaspBehavior));
+Result *GaspRange_parse(GaspRange *self, Bitstream *bs) {
+  TRY(Bitstream_readU16(bs, &self->rangeMaxPPEM));
+  TRY(Bitstream_readU16(bs, &self->rangeGaspBehavior));
 
   return OK;
 }
 
-void GaspTableFree(GaspTable *self) { free(self->gaspRanges); }
+void GaspTable_free(GaspTable *self) { free(self->gaspRanges); }

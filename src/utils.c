@@ -4,7 +4,7 @@
 
 Result RESULT_OK = {.err = Error_Ok};
 
-bool ResultUnwrap(Result *res) {
+bool Result_unwrap(Result *res) {
   bool isErr = res->err;
   if (isErr) {
     if (res->reason) {
@@ -14,7 +14,7 @@ bool ResultUnwrap(Result *res) {
     if (res->err == Error_System) { perror("\x1b[1m\x1b[38;5;225mSystem\x1b[0m"); }
     Result *parent = res->parent;
     free(res);
-    if (parent) { ResultUnwrap(parent); }
+    if (parent) { Result_unwrap(parent); }
   }
 
   return isErr;

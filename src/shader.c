@@ -26,7 +26,7 @@ static Result *compile(unsigned int *shader, int type, const char *path) {
   return OK;
 }
 
-Result *ShaderNew(uint *shader, const char *vertPath, const char *fragPath) {
+Result *Shader_new(uint *shader, const char *vertPath, const char *fragPath) {
   uint vert, frag;
   TRY(compile(&frag, GL_VERTEX_SHADER, vertPath));
   TRY(compile(&vert, GL_FRAGMENT_SHADER, fragPath));
@@ -59,16 +59,16 @@ Result *ShaderNew(uint *shader, const char *vertPath, const char *fragPath) {
   return OK;
 }
 
-void ShaderUse(uint shader) { glUseProgram(shader); }
+void Shader_use(uint shader) { glUseProgram(shader); }
 
-void ShaderUniformMat4(uint shader, const char *name, const Mat4 *matrix) {
+void Shader_uniformMat4(uint shader, const char *name, const Mat4 *matrix) {
   glUniformMatrix4fv(glGetUniformLocation(shader, name), 1, GL_FALSE, (f32 *)matrix->data);
 }
 
-void ShaderUniformVec4(uint shader, const char *name, f32 x, f32 y, f32 z, f32 w) {
+void Shader_uniformVec4(uint shader, const char *name, f32 x, f32 y, f32 z, f32 w) {
   glUniform4f(glGetUniformLocation(shader, name), x, y, z, w);
 }
 
-void ShaderUniformFloat(uint shader, const char *name, f32 x) { glUniform1f(glGetUniformLocation(shader, name), x); }
+void Shader_uniformFloat(uint shader, const char *name, f32 x) { glUniform1f(glGetUniformLocation(shader, name), x); }
 
-void ShaderDestroy(uint shader) { glDeleteProgram(shader); }
+void Shader_free(uint shader) { glDeleteProgram(shader); }

@@ -3,59 +3,66 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-InstancedRenderer InstancedRendererNew(const void *vertices, uint verticesSize, const uint *indices, uint indicesSize,
-                                       uint indicesLen, uint maxInstances, bool dynamic) {
+InstancedRenderer InstancedRenderer_new(
+    const void *vertices,
+    uint verticesSize,
+    const uint *indices,
+    uint indicesSize,
+    uint indicesLen,
+    uint maxInstances,
+    bool dynamic
+) {
   InstancedRenderer self;
 
-  VAONew(&self.vao);
-  VAOBind(self.vao);
+  VAO_new(&self.vao);
+  VAO_bind(self.vao);
 
-  self.vbo = BufferNew(BufferType_Array);
-  BufferData(&self.vbo, verticesSize, vertices, false);
+  self.vbo = Buffer_new(BufferType_Array);
+  Buffer_data(&self.vbo, verticesSize, vertices, false);
 
-  self.ibo = BufferNew(BufferType_Element);
+  self.ibo = Buffer_new(BufferType_Element);
   self.indicesLen = indicesLen;
-  BufferData(&self.ibo, indicesSize, indices, false);
-  VAOAttrib(self.vao, &self.vbo, 0, 3, AttribType_Float, false, sizeof(Vec3), offsetof(Vec3, x));
+  Buffer_data(&self.ibo, indicesSize, indices, false);
+  VAO_attrib(self.vao, &self.vbo, 0, 3, AttribType_Float, false, sizeof(Vec3), offsetof(Vec3, x));
 
-  self.colors.buf = BufferNew(BufferType_Array);
-  BufferData(&self.colors.buf, maxInstances * sizeof(Color), NULL, dynamic);
-  VAOAttrib(self.vao, &self.colors.buf, 1, 3, AttribType_Byte, true, sizeof(Color), offsetof(Color, r));
-  VAOAttribDivisor(self.vao, &self.colors.buf, 1, 1);
+  self.colors.buf = Buffer_new(BufferType_Array);
+  Buffer_data(&self.colors.buf, maxInstances * sizeof(Color), NULL, dynamic);
+  VAO_attrib(self.vao, &self.colors.buf, 1, 3, AttribType_Byte, true, sizeof(Color), offsetof(Color, r));
+  VAO_attribDivisor(self.vao, &self.colors.buf, 1, 1);
 
-  self.models.buf = BufferNew(BufferType_Array);
-  BufferData(&self.models.buf, maxInstances * sizeof(Mat4), NULL, dynamic);
-  VAOAttrib(self.vao, &self.models.buf, 2, 4, AttribType_Float, false, sizeof(Mat4), offsetof(Mat4, m1x1));
-  VAOAttrib(self.vao, &self.models.buf, 3, 4, AttribType_Float, false, sizeof(Mat4), offsetof(Mat4, m1x2));
-  VAOAttrib(self.vao, &self.models.buf, 4, 4, AttribType_Float, false, sizeof(Mat4), offsetof(Mat4, m1x3));
-  VAOAttrib(self.vao, &self.models.buf, 5, 4, AttribType_Float, false, sizeof(Mat4), offsetof(Mat4, m1x4));
-  VAOAttribDivisor(self.vao, &self.models.buf, 2, 1);
-  VAOAttribDivisor(self.vao, &self.models.buf, 3, 1);
-  VAOAttribDivisor(self.vao, &self.models.buf, 4, 1);
-  VAOAttribDivisor(self.vao, &self.models.buf, 5, 1);
+  self.models.buf = Buffer_new(BufferType_Array);
+  Buffer_data(&self.models.buf, maxInstances * sizeof(Mat4), NULL, dynamic);
+  VAO_attrib(self.vao, &self.models.buf, 2, 4, AttribType_Float, false, sizeof(Mat4), offsetof(Mat4, m1x1));
+  VAO_attrib(self.vao, &self.models.buf, 3, 4, AttribType_Float, false, sizeof(Mat4), offsetof(Mat4, m1x2));
+  VAO_attrib(self.vao, &self.models.buf, 4, 4, AttribType_Float, false, sizeof(Mat4), offsetof(Mat4, m1x3));
+  VAO_attrib(self.vao, &self.models.buf, 5, 4, AttribType_Float, false, sizeof(Mat4), offsetof(Mat4, m1x4));
+  VAO_attribDivisor(self.vao, &self.models.buf, 2, 1);
+  VAO_attribDivisor(self.vao, &self.models.buf, 3, 1);
+  VAO_attribDivisor(self.vao, &self.models.buf, 4, 1);
+  VAO_attribDivisor(self.vao, &self.models.buf, 5, 1);
 
   return self;
 }
 
-void DataBufferSet(DataBuffer *dbo, uint len, uint instanceSize, void *data) {
+void DataBuffer_set(DataBuffer *dbo, uint len, uint instanceSize, void *data) {
   if (dbo->len != len) {
     dbo->len = len;
     dbo->size = dbo->len * instanceSize;
   }
 
-  BufferSubData(&dbo->buf, 0, dbo->size, data);
+  Buffer_subData(&dbo->buf, 0, dbo->size, data);
 }
 
-void DataBufferSliceSet(DataBuffer *dbo, uint offset, uint size, void *data) {
-  BufferSubData(&dbo->buf, offset, size, data + offset);
+void DataBuffer_sliceSet(DataBuffer *dbo, uint offset, uint size, void *data) {
+  Buffer_subData(&dbo->buf, offset, size, data + offset);
 }
 
-void InstancedRendererDraw(InstancedRenderer *self) { DrawElementsInstanced(self->indicesLen, self->models.len); }
+void InstancedRenderer_draw(InstancedRenderer *self) { VAO_drawElementsInstanced(self->indicesLen, self->models.len); }
 
-void InstancedRendererDestroy(InstancedRenderer *self) {
-  VAODestroy(&self->vao);
-  BufferDestroy(&self->vbo);
-  BufferDestroy(&self->ibo);
-  BufferDestroy(&self->models.buf);
-  BufferDestroy(&self->colors.buf);
+void InstancedRenderer_free(InstancedRenderer *self) {
+  VAO_free(&self->vao);
+  Buffer_free(&self->vbo);
+  Buffer_free(&self->ibo);
+  Buffer_free(&self->models.buf);
+  Buffer_free(&self->colors.buf);
 }

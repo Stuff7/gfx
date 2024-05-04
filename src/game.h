@@ -1,7 +1,6 @@
 #pragma once
 
 #include "defs.h"
-#include "keyboard.h"
 #include "renderer.h"
 
 #define RAND(min, max) (f32) rand() / (f32)RAND_MAX *(max - min) + min
@@ -24,11 +23,6 @@ typedef struct {
   } cursor;
 } State;
 
-State StateNew();
-void StateDestroy(State *state);
-Result *StateCreateScene(State *state, const char *windowTitle);
-
-void processInput(State *state, Key key, KeyState keyState);
-void draw(State *state);
-void resize(State *state, int width, int height);
-void mouseInput(State *state, f64 width, f64 height);
+State State_new();
+void State_free(State *state);
+Result *State_createScene(State *state, const char *windowTitle);

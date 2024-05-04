@@ -4,13 +4,13 @@
 
 typedef char Tag[5];
 
-Result *BitstreamReadTag(Bitstream *self, Tag buf);
+Result *Bitstream_readTag(Bitstream *self, Tag buf);
 
-#define ENUM_PARSE(bs, typ, typRead, typEnum, var)                                                                     \
+#define ENUM_PARSE(_bs, _typ, _typRead, _typEnum, _var)                                                                \
   {                                                                                                                    \
-    typ id;                                                                                                            \
-    TRY(BitstreamRead##typRead(bs, &id));                                                                              \
-    var = (typEnum)id;                                                                                                 \
+    _typ id;                                                                                                           \
+    TRY(Bitstream_read##_typRead(_bs, &id));                                                                           \
+    _var = (_typEnum)id;                                                                                               \
   }
 
 typedef struct {
@@ -26,7 +26,7 @@ typedef enum {
   PlatformID_Custom,
 } PlatformID;
 
-const char *PlatformIDString(PlatformID platform);
+const char *PlatformID_string(PlatformID platform);
 
 typedef enum {
   EncodingIDUnicode_1_0 = 0,
@@ -62,7 +62,7 @@ typedef union {
   EncodingIDWindows windows;
 } EncodingID;
 
-Result *PlatformEncodingIDParse(PlatformID *platform, EncodingID *encoding, Bitstream *bs);
+Result *EncodingID_parse(PlatformID *platform, EncodingID *encoding, Bitstream *bs);
 
 typedef enum {
   TableTag_GDEF = 0,
@@ -84,7 +84,7 @@ typedef enum {
   TableTag_Unknown
 } TableTag;
 
-Result *TableTagParse(TableTag *tableTag, Bitstream *bs);
+Result *TableTag_parse(TableTag *tableTag, Bitstream *bs);
 
 typedef enum {
   LocFormat_Short = 0,
@@ -97,7 +97,7 @@ typedef struct {
   u32 length;
 } TableRecord;
 
-Result *TableRecordParse(TableRecord *record, Bitstream *bs);
+Result *TableRecord_parse(TableRecord *record, Bitstream *bs);
 
 typedef struct {
   PlatformID platformID;
@@ -105,14 +105,14 @@ typedef struct {
   u32 subtableOffset;
 } EncodingRecord;
 
-Result *EncodingRecordParse(EncodingRecord *self, Bitstream *bs);
+Result *EncodingRecord_parse(EncodingRecord *self, Bitstream *bs);
 
 typedef struct {
   u16 rangeMaxPPEM;
   u16 rangeGaspBehavior;
 } GaspRange;
 
-Result *GaspRangeParse(GaspRange *self, Bitstream *bs);
+Result *GaspRange_parse(GaspRange *self, Bitstream *bs);
 
 typedef enum {
   NameID_Copyright = 0,
@@ -153,11 +153,11 @@ typedef struct {
   u16 stringOffset;
 } NameRecord;
 
-Result *NameRecordParse(NameRecord *self, Bitstream *bs);
+Result *NameRecord_parse(NameRecord *self, Bitstream *bs);
 
 typedef struct {
   u16 length;
   u16 langTagOffset;
 } LangTagRecord;
 
-Result *LangTagRecordParse(LangTagRecord *self, Bitstream *bs);
+Result *LangTagRecord_parse(LangTagRecord *self, Bitstream *bs);

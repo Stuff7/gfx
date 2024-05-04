@@ -13,7 +13,7 @@ set logging overwrite on
 set logging enabled on
 show args
 
-break TableDirParse
+break TableDir_parse
 break src/main.c:78
 
 run

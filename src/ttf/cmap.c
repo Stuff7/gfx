@@ -1,7 +1,7 @@
 #include "tables.h"
 #include "types.h"
 
-const char *PlatformIDString(PlatformID platform) {
+const char *PlatformID_string(PlatformID platform) {
   switch (platform) {
     case PlatformID_Unicode:
       return "Unicode";
@@ -18,7 +18,7 @@ const char *PlatformIDString(PlatformID platform) {
   return "Unknown";
 }
 
-const char *EncodingIDString(PlatformID platform, EncodingID encoding) {
+const char *EncodingID_string(PlatformID platform, EncodingID encoding) {
   switch (platform) {
     case PlatformID_Unicode:
       switch (encoding.unicode) {
@@ -77,7 +77,7 @@ const char *EncodingIDString(PlatformID platform, EncodingID encoding) {
   return "Unknown";
 }
 
-Result *PlatformEncodingIDParse(PlatformID *platform, EncodingID *encoding, Bitstream *bs) {
+Result *EncodingID_parse(PlatformID *platform, EncodingID *encoding, Bitstream *bs) {
   ENUM_PARSE(bs, u16, U16, PlatformID, *platform);
 
   switch (*platform) {
@@ -94,14 +94,14 @@ Result *PlatformEncodingIDParse(PlatformID *platform, EncodingID *encoding, Bits
       ASSERT(
           false,
           "Unsupported platform\n\tExpected: Unicode | Mac | Windows\n\tReceived: %s",
-          PlatformIDString(*platform)
+          PlatformID_string(*platform)
       );
   }
 
   return OK;
 }
 
-Result *CmapTableFindOffset(CmapTable *self, int *offset) {
+Result *CmapTable_findOffset(CmapTable *self, int *offset) {
   bool found = false;
   for (int i = 0; i < self->numTables; i++) {
     EncodingRecord *record = &self->encodingRecords[i];
@@ -128,7 +128,7 @@ Result *CmapTableFindOffset(CmapTable *self, int *offset) {
   return ERR("Could not find any supported cmap platform/encoding");
 }
 
-Result *CmapSubtableFindGlyphIdFromCharCode(CmapSubtable *self, u16 c, u16 *glyphId) {
+Result *CmapSubtable_findGlyphIdFromCharCode(CmapSubtable *self, u16 c, u16 *glyphId) {
   for (u16 i = 0; i < self->segCount; ++i) {
     if (c > self->endCode[i]) { continue; }
     if (c < self->startCode[i]) { break; }
@@ -137,8 +137,8 @@ Result *CmapSubtableFindGlyphIdFromCharCode(CmapSubtable *self, u16 c, u16 *glyp
     else {
       u16 index = self->idRangeOffsets[i] + (c - self->startCode[i] + i) * sizeof(u16);
       Bitstream bs;
-      TRY(BitstreamSlice(&bs, &self->glyphIdStream, index, self->glyphIdStream.size - index));
-      TRY(BitstreamReadU16(&bs, glyphId));
+      TRY(Bitstream_slice(&bs, &self->glyphIdStream, index, self->glyphIdStream.size - index));
+      TRY(Bitstream_readU16(&bs, glyphId));
 
       if (*glyphId != 0) { *glyphId = (*glyphId + self->idDelta[i]) & 0xFFFF; }
     }
@@ -149,19 +149,19 @@ Result *CmapSubtableFindGlyphIdFromCharCode(CmapSubtable *self, u16 c, u16 *glyp
   return OK;
 }
 
-Result *CmapSubtableGetBMPCharGlyphIDMap(CmapSubtable *self, u16 *glyphIds) {
+Result *CmapSubtable_getBMPCharGlyphIDMap(CmapSubtable *self, u16 *glyphIds) {
   for (u16 c = 0x0000; c < 0xFFFF; c++) {
-    TRY(CmapSubtableFindGlyphIdFromCharCode(self, c, &glyphIds[c]));
+    TRY(CmapSubtable_findGlyphIdFromCharCode(self, c, &glyphIds[c]));
   }
 
   return OK;
 }
 
-Result *CmapSubtableParse(CmapSubtable *self, Bitstream *bs) {
-  TRY(BitstreamReadU16(bs, &self->format));
+Result *CmapSubtable_parse(CmapSubtable *self, Bitstream *bs) {
+  TRY(Bitstream_readU16(bs, &self->format));
   ASSERT(self->format == 4, "Unsupported cmap subtable format\n\tExpected: 4\n\tReceived: %u", self->format);
 
-  TRY(BitstreamReadU16(bs, &self->length));
+  TRY(Bitstream_readU16(bs, &self->length));
   ASSERT(
       self->length <= bs->size,
       "cmap length exceeds bitstream size\n\tBitstream: %lu\n\tCmap: %u",
@@ -169,56 +169,56 @@ Result *CmapSubtableParse(CmapSubtable *self, Bitstream *bs) {
       self->length
   );
 
-  TRY(BitstreamReadU16(bs, &self->language));
-  TRY(BitstreamReadU16(bs, &self->segCount));
+  TRY(Bitstream_readU16(bs, &self->language));
+  TRY(Bitstream_readU16(bs, &self->segCount));
   self->segCount /= 2;
-  TRY(BitstreamReadU16(bs, &self->searchRange));
-  TRY(BitstreamReadU16(bs, &self->entrySelector));
-  TRY(BitstreamReadU16(bs, &self->rangeShift));
+  TRY(Bitstream_readU16(bs, &self->searchRange));
+  TRY(Bitstream_readU16(bs, &self->entrySelector));
+  TRY(Bitstream_readU16(bs, &self->rangeShift));
 
   FILL_BUF(u16, U16, bs, self->segCount, self->endCode);
-  TRY(BitstreamReadU16(bs, &self->reservedPad));
+  TRY(Bitstream_readU16(bs, &self->reservedPad));
   ASSERT(self->reservedPad == 0, "Unexpected cmap.reservedPad value\n\tExpected: 0\n\tReceived: %u", self->reservedPad);
 
   FILL_BUF(u16, U16, bs, self->segCount, self->startCode);
   FILL_BUF(i16, I16, bs, self->segCount, self->idDelta);
-  TRY(BitstreamSlice(&self->glyphIdStream, bs, bs->i, bs->size - bs->i));
+  TRY(Bitstream_slice(&self->glyphIdStream, bs, bs->i, bs->size - bs->i));
   FILL_BUF(u16, U16, bs, self->segCount, self->idRangeOffsets);
 
   return OK;
 }
 
-void CmapSubtableFree(CmapSubtable *self) {
+void CmapSubtable_free(CmapSubtable *self) {
   free(self->endCode);
   free(self->startCode);
   free(self->idDelta);
   free(self->idRangeOffsets);
 }
 
-Result *CmapTableParse(CmapTable *self, Bitstream *bs) {
-  TRY(BitstreamReadU16(bs, &self->version));
+Result *CmapTable_parse(CmapTable *self, Bitstream *bs) {
+  TRY(Bitstream_readU16(bs, &self->version));
   ASSERT(self->version == 0, "Unsupported cmap version\n\rExpected: 0\n\tReceived: %u", self->version);
-  TRY(BitstreamReadU16(bs, &self->numTables));
+  TRY(Bitstream_readU16(bs, &self->numTables));
 
   ASSERT_ALLOC(EncodingRecord, self->numTables, self->encodingRecords);
   for (int i = 0; i < self->numTables; i++) {
-    EncodingRecordParse(&self->encodingRecords[i], bs);
+    EncodingRecord_parse(&self->encodingRecords[i], bs);
   }
 
   int subtableOffset;
-  TRY(CmapTableFindOffset(self, &subtableOffset));
-  TRY(BitstreamSlice(bs, bs, subtableOffset, bs->size - subtableOffset));
-  return CmapSubtableParse(&self->subtable, bs);
+  TRY(CmapTable_findOffset(self, &subtableOffset));
+  TRY(Bitstream_slice(bs, bs, subtableOffset, bs->size - subtableOffset));
+  return CmapSubtable_parse(&self->subtable, bs);
 }
 
-Result *EncodingRecordParse(EncodingRecord *self, Bitstream *bs) {
-  TRY(PlatformEncodingIDParse(&self->platformID, &self->encodingID, bs));
-  TRY(BitstreamReadU32(bs, &self->subtableOffset));
+Result *EncodingRecord_parse(EncodingRecord *self, Bitstream *bs) {
+  TRY(EncodingID_parse(&self->platformID, &self->encodingID, bs));
+  TRY(Bitstream_readU32(bs, &self->subtableOffset));
 
   return OK;
 }
 
-void CmapTableFree(CmapTable *self) {
+void CmapTable_free(CmapTable *self) {
   free(self->encodingRecords);
-  CmapSubtableFree(&self->subtable);
+  CmapSubtable_free(&self->subtable);
 }

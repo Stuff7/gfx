@@ -2,26 +2,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void cursor_callback(UNUSED(GLFWwindow *) _1, f64 x, f64 y) { window.cursor(window.context, x, y); }
+static void cursor_callback(UNUSED(GLFWwindow *) _1, f64 x, f64 y) { window.cursor(window.context, x, y); }
 
-void input_callback(UNUSED(GLFWwindow *) _1, int key, UNUSED(int) _2, int action, UNUSED(int) _3) {
+static void input_callback(UNUSED(GLFWwindow *) _1, int key, UNUSED(int) _2, int action, UNUSED(int) _3) {
   window.input(window.context, key, action);
 }
 
-void error_callback(int error, const char *description) { fprintf(stderr, "[GLFW] (%d) %s\n", error, description); }
+static void error_callback(int error, const char *description) {
+  fprintf(stderr, "[GLFW] (%d) %s\n", error, description);
+}
 
-void framebuffer_size_callback(UNUSED(GLFWwindow *) _, int width, int height) {
+static void framebuffer_size_callback(UNUSED(GLFWwindow *) _, int width, int height) {
   glViewport(0, 0, width, height);
   window.width = width;
   window.height = height;
   window.resize(window.context, width, height);
 }
 
-void WindowSetCursor(f64 x, f64 y) { glfwSetCursorPos(window.hndl, x, y); }
+void Window_setCursor(f64 x, f64 y) { glfwSetCursorPos(window.hndl, x, y); }
 
-void WindowClose() { glfwSetWindowShouldClose(window.hndl, true); }
+void Window_close() { glfwSetWindowShouldClose(window.hndl, true); }
 
-void WindowRun() {
+void Window_run() {
   glEnable(GL_DEPTH_TEST);
   glfwSwapInterval(1);
   f64 deltaFrame = 0;
@@ -47,7 +49,7 @@ void WindowRun() {
 
 Window window;
 
-Result *WindowNew(
+Result *Window_new(
     void *context,
     const char *title,
     int w,
@@ -74,14 +76,14 @@ Result *WindowNew(
 
   window.hndl = glfwCreateWindow(w, h, title, NULL, NULL);
   if (!window.hndl) {
-    WindowDestroy();
+    Window_free();
     return ERR("GLFWwindow creation failed");
   }
 
   glfwMakeContextCurrent(window.hndl);
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     fprintf(stderr, "gladLoadGLLoader failed");
-    WindowDestroy();
+    Window_free();
     return ERR("Glad loading failed");
   }
 
@@ -94,11 +96,11 @@ Result *WindowNew(
   return OK;
 }
 
-void WindowCaptureCursor(bool capture) {
+void Window_captureCursor(bool capture) {
   glfwSetInputMode(window.hndl, GLFW_CURSOR, capture ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
 }
 
-void WindowDestroy() {
+void Window_free() {
   if (window.hndl) { glfwDestroyWindow(window.hndl); }
   glfwTerminate();
 }

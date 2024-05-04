@@ -57,7 +57,7 @@ typedef struct {
   float x, y;
 } Point;
 
-bool ResultUnwrap(Result *res);
+bool Result_unwrap(Result *res);
 
 #define UNWRAP(_result)                                                                                                \
   __extension__({                                                                                                      \
@@ -66,9 +66,9 @@ bool ResultUnwrap(Result *res);
     if (_res->err) {                                                                                                   \
       Result *_unwrap = ERR("Tried to unwrap an error result");                                                        \
       _unwrap->parent = _res;                                                                                          \
-      _ret = ResultUnwrap(_unwrap);                                                                                    \
+      _ret = Result_unwrap(_unwrap);                                                                                   \
     }                                                                                                                  \
-    else { _ret = ResultUnwrap(_res); }                                                                                \
+    else { _ret = Result_unwrap(_res); }                                                                               \
     _ret;                                                                                                              \
   })
 

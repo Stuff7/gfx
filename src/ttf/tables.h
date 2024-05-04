@@ -5,18 +5,18 @@
 
 #define MAX_ALLOC_SIZE 100000
 
-#define ASSERT_ALLOC(typ, num, table)                                                                                  \
+#define ASSERT_ALLOC(_typ, _num, _table)                                                                               \
   {                                                                                                                    \
-    uint size = num * sizeof(typ);                                                                                     \
-    ASSERT(size < MAX_ALLOC_SIZE, "%s is too large\n\tsize: %u", #table, size);                                        \
-    table = malloc(size);                                                                                              \
+    uint _size = _num * sizeof(_typ);                                                                                  \
+    ASSERT(_size < MAX_ALLOC_SIZE, "%s is too large\n\tsize: %u", #_table, _size);                                     \
+    _table = malloc(_size);                                                                                            \
   }
 
 #define FILL_BUF(_typ, _fnPostfix, _bs, _size, _buf)                                                                   \
   {                                                                                                                    \
     ASSERT_ALLOC(_typ, _size, _buf);                                                                                   \
     for (int i = 0; i < _size; i++) {                                                                                  \
-      TRY(BitstreamRead##_fnPostfix(_bs, &_buf[i]));                                                                   \
+      TRY(Bitstream_read##_fnPostfix(_bs, &_buf[i]));                                                                  \
     }                                                                                                                  \
   }
 
@@ -28,7 +28,7 @@ typedef struct {
   i16 yMax;
 } GlyfTable;
 
-Result *GlyfTableParse(GlyfTable *self, Bitstream *bs);
+Result *GlyfTable_parse(GlyfTable *self, Bitstream *bs);
 
 typedef struct {
   u32 version;
@@ -49,7 +49,7 @@ typedef struct {
   u16 maxComponentDepth;
 } MaxpTable;
 
-Result *MaxpTableParse(MaxpTable *self, Bitstream *bs);
+Result *MaxpTable_parse(MaxpTable *self, Bitstream *bs);
 
 typedef struct {
   u16 majorVersion;
@@ -72,7 +72,7 @@ typedef struct {
   u16 numberOfHMetrics;
 } HheaTable;
 
-Result *HheaTableParse(HheaTable *self, Bitstream *bs);
+Result *HheaTable_parse(HheaTable *self, Bitstream *bs);
 
 typedef struct {
   LongHorMetric *hMetrics;
@@ -80,8 +80,8 @@ typedef struct {
   i16 *leftSideBearings;
 } HmtxTable;
 
-Result *HmtxTableParse(HmtxTable *self, Bitstream *bs, const HheaTable *hhea, const MaxpTable *maxp);
-void HmtxTableFree(HmtxTable *self);
+Result *HmtxTable_parse(HmtxTable *self, Bitstream *bs, const HheaTable *hhea, const MaxpTable *maxp);
+void HmtxTable_free(HmtxTable *self);
 
 typedef struct {
   u16 majorVersion;
@@ -104,7 +104,7 @@ typedef struct {
   i16 glyphDataFormat;
 } HeadTable;
 
-Result *HeadTableParse(HeadTable *self, Bitstream *bs);
+Result *HeadTable_parse(HeadTable *self, Bitstream *bs);
 
 typedef union {
   u16 *u16;
@@ -116,8 +116,8 @@ typedef struct {
   u32 *offsets;
 } LocaTable;
 
-Result *LocaTableParse(LocaTable *self, Bitstream *bs, const HeadTable *head, const MaxpTable *maxp);
-void LocaTableFree(LocaTable *self);
+Result *LocaTable_parse(LocaTable *self, Bitstream *bs, const HeadTable *head, const MaxpTable *maxp);
+void LocaTable_free(LocaTable *self);
 
 typedef struct {
   u32 sfntVersion;
@@ -126,8 +126,8 @@ typedef struct {
   Bitstream bs;
 } TableDir;
 
-Result *TableDirParse(TableDir *table, Bitstream *bs);
-Result *TableDirFindTable(TableDir *self, TableTag tag, Bitstream *bs);
+Result *TableDir_parse(TableDir *table, Bitstream *bs);
+Result *TableDir_findTable(TableDir *self, TableTag tag, Bitstream *bs);
 
 typedef struct {
   HeadTable head;
@@ -138,8 +138,8 @@ typedef struct {
   GlyfTable *glyf;
 } GlyphParser;
 
-Result *GlyphParserNew(GlyphParser *self, TableDir *dir);
-void GlyphParserDestroy(GlyphParser *self);
+Result *GlyphParser_new(GlyphParser *self, TableDir *dir);
+void GlyphParser_free(GlyphParser *self);
 
 typedef struct {
   u16 majorVersion;
@@ -154,7 +154,7 @@ typedef struct {
   u16 itemVarStoreOffset;
 } GDEFTable;
 
-Result *GDEFTableParse(GDEFTable *self, Bitstream *bs);
+Result *GDEFTable_parse(GDEFTable *self, Bitstream *bs);
 
 typedef struct {
   u16 majorVersion;
@@ -167,7 +167,7 @@ typedef struct {
 } GPOSTable;
 
 typedef GPOSTable GSUBTable;
-Result *GPOSTableParse(GPOSTable *self, Bitstream *bs);
+Result *GPOSTable_parse(GPOSTable *self, Bitstream *bs);
 
 typedef struct {
   u16 version;
@@ -214,7 +214,7 @@ typedef struct {
   u16 usUpperOpticalPointSize;
 } OS2Table;
 
-Result *OS2TableParse(OS2Table *self, Bitstream *bs);
+Result *OS2Table_parse(OS2Table *self, Bitstream *bs);
 
 // Format 4
 typedef struct {
@@ -233,7 +233,7 @@ typedef struct {
   Bitstream glyphIdStream;
 } CmapSubtable;
 
-Result *CmapSubtableGetBMPCharGlyphIDMap(CmapSubtable *self, u16 *glyphIds);
+Result *CmapSubtable_getBMPCharGlyphIDMap(CmapSubtable *self, u16 *glyphIds);
 
 typedef struct {
   u16 version;
@@ -242,24 +242,24 @@ typedef struct {
   CmapSubtable subtable;
 } CmapTable;
 
-Result *CmapTableParse(CmapTable *self, Bitstream *bs);
-void CmapTableFree(CmapTable *self);
+Result *CmapTable_parse(CmapTable *self, Bitstream *bs);
+void CmapTable_free(CmapTable *self);
 
 typedef struct {
   i16 *instructions;
   u32 size;
 } CvtTable;
 
-Result *CvtTableParse(CvtTable *self, Bitstream *bs);
-void CvtTableFree(CvtTable *self);
+Result *CvtTable_parse(CvtTable *self, Bitstream *bs);
+void CvtTable_free(CvtTable *self);
 
 typedef struct {
   u8 *instructions;
   u32 size;
 } FpgmTable;
 
-Result *FpgmTableParse(FpgmTable *self, Bitstream *bs);
-void FpgmTableFree(FpgmTable *self);
+Result *FpgmTable_parse(FpgmTable *self, Bitstream *bs);
+void FpgmTable_free(FpgmTable *self);
 
 typedef struct {
   u16 version;
@@ -267,8 +267,8 @@ typedef struct {
   GaspRange *gaspRanges;
 } GaspTable;
 
-Result *GaspTableParse(GaspTable *self, Bitstream *bs);
-void GaspTableFree(GaspTable *self);
+Result *GaspTable_parse(GaspTable *self, Bitstream *bs);
+void GaspTable_free(GaspTable *self);
 
 typedef struct {
   u16 version;
@@ -280,7 +280,7 @@ typedef struct {
   Bitstream bs;
 } NameTable;
 
-Result *NameTableParse(NameTable *self, Bitstream *bs);
-Result *NameRecordGetString(const NameRecord *record, const NameTable *table, char **buf);
+Result *NameTable_parse(NameTable *self, Bitstream *bs);
+Result *NameRecord_getString(const NameRecord *record, const NameTable *table, char **buf);
 
-void NameTableFree(NameTable *self);
+void NameTable_free(NameTable *self);
