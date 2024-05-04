@@ -56,7 +56,7 @@ void GlyphParser_free(GlyphParser *self) {
   free(self->glyf);
 }
 
-static const u8 CURVE = 0;
+static const u8 CURVE = 1;
 static const u8 U8_X = 1 << 1;
 static const u8 U8_Y = 1 << 2;
 static const u8 REPEAT = 1 << 3;
