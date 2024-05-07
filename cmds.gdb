@@ -14,7 +14,7 @@ set logging enabled on
 show args
 
 break TableDir_parse
-break src/main.c:66
+break /main.c:66
 
 run
 
