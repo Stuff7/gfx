@@ -1,6 +1,9 @@
 #include "renderer.h"
+#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#define GLFW_LOG(_format, ...) LOG3(_format, 225, "GLFW", ##__VA_ARGS__)
 
 static void cursor_callback(UNUSED(GLFWwindow *) _1, f64 x, f64 y) { window.cursor(window.context, x, y); }
 
@@ -8,9 +11,7 @@ static void input_callback(UNUSED(GLFWwindow *) _1, int key, UNUSED(int) _2, int
   window.input(window.context, key, action);
 }
 
-static void error_callback(int error, const char *description) {
-  fprintf(stderr, "[GLFW] (%d) %s\n", error, description);
-}
+static void error_callback(int error, const char *description) { GLFW_LOG("(%d) %s", error, description); }
 
 static void framebuffer_size_callback(UNUSED(GLFWwindow *) _, int width, int height) {
   glViewport(0, 0, width, height);
@@ -68,7 +69,7 @@ Result *Window_new(
   glfwSetErrorCallback(error_callback);
   if (!glfwInit()) { return ERR("glfwInit failed"); }
 
-  printf("GLFW Version: %s\n", glfwGetVersionString());
+  GLFW_LOG("GLFW Version: %s", glfwGetVersionString());
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -82,12 +83,11 @@ Result *Window_new(
 
   glfwMakeContextCurrent(window.hndl);
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-    fprintf(stderr, "gladLoadGLLoader failed");
     Window_free();
     return ERR("Glad loading failed");
   }
 
-  printf("OpenGL Version: %s\n", glGetString(GL_VERSION));
+  GLFW_LOG("OpenGL Version: %s", glGetString(GL_VERSION));
 
   glfwSetFramebufferSizeCallback(window.hndl, framebuffer_size_callback);
   glfwSetKeyCallback(window.hndl, input_callback);

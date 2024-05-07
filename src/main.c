@@ -5,14 +5,14 @@
 
 int main(int argc, char **argv) {
   if (argc == 1) {
-    fprintf(stderr, "Usage: %s <font|gl> <fontPath>|[fps]\n", argv[0]);
+    printf("Usage: %s <font|gl> <fontPath>|[fps]\n", argv[0]);
     return -1;
   }
   char *cmd = argv[1];
 
   if (streq(cmd, "font")) {
     if (argc < 3) {
-      fprintf(stderr, "Missing font path\n");
+      printf("Missing font path\n");
       return -1;
     }
 

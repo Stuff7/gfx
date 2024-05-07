@@ -20,7 +20,7 @@ static Result *compile(unsigned int *shader, int type, const char *path) {
     char infoLog[512];
     glGetShaderInfoLog(*shader, 512, NULL, infoLog);
     glDeleteShader(*shader);
-    return ERRF("Shader compilation failed: %s", infoLog);
+    return ERR("Shader compilation failed: %s", infoLog);
   }
 
   return OK;
@@ -42,7 +42,7 @@ Result *Shader_new(uint *shader, const char *vertPath, const char *fragPath) {
   if (success == 0) {
     char infoLog[512];
     glGetProgramInfoLog(*shader, 512, NULL, infoLog);
-    return ERRF("Shader linking failed: %s", infoLog);
+    return ERR("Shader linking failed: %s", infoLog);
   }
 
   glValidateProgram(*shader);
@@ -50,7 +50,7 @@ Result *Shader_new(uint *shader, const char *vertPath, const char *fragPath) {
   if (success == 0) {
     char infoLog[512];
     glGetProgramInfoLog(*shader, 512, NULL, infoLog);
-    return ERRF("Shader validation failed: %s", infoLog);
+    return ERR("Shader validation failed: %s", infoLog);
   }
 
   glDeleteShader(vert);

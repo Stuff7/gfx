@@ -12,7 +12,7 @@ Result *TableDir_parse(TableDir *self, Bitstream *bs) {
     TableTag tag;
     TRY(TableTag_parse(&tag, &self->bs));
     if (tag == TableTag_Unknown) {
-      Bitstream_skip(&self->bs, sizeof(TableRecord));
+      TRY(Bitstream_skip(&self->bs, sizeof(TableRecord)));
       continue;
     }
     TableRecord *record = &self->tableRecords[tag];
@@ -47,7 +47,7 @@ Result *TableTag_parse(TableTag *tableTag, Bitstream *bs) {
   else if (streq(tag, "hhea")) { *tableTag = TableTag_Hhea; }
   else if (streq(tag, "glyf")) { *tableTag = TableTag_Glyf; }
   else {
-    printf("\x1b[38;5;190mUnknown table record %s\x1b[0m\n", tag);
+    WARN("Unknown table record " BOLD("%s"), tag);
     *tableTag = TableTag_Unknown;
   }
 

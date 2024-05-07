@@ -14,6 +14,22 @@ Result *readString(const char *path, char **out);
 char *decodeUnicodeBMP(const u8 *bytes, u64 length);
 char *decodeMacRoman(const u8 *bytes, u64 length);
 
+/* ---------------- Logging ---------------- */
+char *getFormattedTime(void);
+
+#define LOG3(_format, _clr, _lvl, ...)                                                                                 \
+  printf(                                                                                                              \
+      FGID(251, "[%s] ") FGID(_clr, BOLD("%-5s | ")) _format " (" FGID(195, "%s") ":" FGID(157, BOLD("%d")) ")\n",     \
+      getFormattedTime(),                                                                                              \
+      _lvl,                                                                                                            \
+      ##__VA_ARGS__,                                                                                                   \
+      __FILE__,                                                                                                        \
+      __LINE__                                                                                                         \
+  )
+
+#define LOG(_format, ...) LOG3(_format, 189, "DEBUG", ##__VA_ARGS__)
+#define WARN(_format, ...) LOG3(_format, 222, "WARN", ##__VA_ARGS__)
+
 /* ---------------- Bitstream ---------------- */
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define BE_SWAP(_buf, _size) _buf = htobe##_size(_buf)
@@ -29,7 +45,7 @@ typedef struct {
 
 Result *Bitstream_fromFile(Bitstream *self, const char *path);
 Result *Bitstream_slice(Bitstream *self, const Bitstream *src, u64 offset, u64 size);
-void Bitstream_skip(Bitstream *self, u64 bytes);
+Result *Bitstream_skip(Bitstream *self, u64 bytes);
 void Bitstream_free(Bitstream *self);
 
 Result *Bitstream_readU64(Bitstream *self, u64 *ret);

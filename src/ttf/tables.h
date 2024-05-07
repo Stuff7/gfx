@@ -3,7 +3,7 @@
 #include "types.h"
 #include "utils.h"
 
-#define MAX_ALLOC_SIZE 1024 * 1024 * 4
+extern const u64 MAX_ALLOC_SIZE;
 
 #define ASSERT_ALLOC(_typ, _num, _table)                                                                               \
   {                                                                                                                    \
@@ -32,7 +32,7 @@ typedef struct {
 Result *GlyfTable_parse(GlyfTable *self, Bitstream *bs);
 
 typedef struct {
-  u32 version;
+  u8 major, minor;
   u16 numGlyphs;
   // Version 1.0
   u16 maxPoints;
@@ -169,16 +169,12 @@ typedef struct {
 typedef struct {
   bool needFree;
   u16 *endPtsOfContours;
-  u16 instructionLength;
-  u8 *instructions;
+  u16 instructionsLength;
   u16 numPoints;
   u8 *flags;
   GlyphPoint *points;
+  GlyfTable *header;
 } Glyph;
-
-Result *Glyph_parsePoints(Glyph *self, GlyfTable *header, bool isX);
-Result *Glyph_parse(Glyph *self, GlyfTable *header);
-void Glyph_free(Glyph *self);
 
 typedef struct {
   HeadTable head;
@@ -194,6 +190,10 @@ typedef struct {
 Result *GlyphParser_new(GlyphParser *self, TableDir *dir);
 Result *GlyphParser_mapGlyphs(GlyphParser *self, Glyph map[0xFFFF]);
 void GlyphParser_free(GlyphParser *self);
+
+Result *Glyph_parsePoints(Glyph *self, bool isX);
+Result *Glyph_parse(Glyph *self, GlyfTable *header, GlyphParser *parser);
+void Glyph_free(Glyph *self);
 
 typedef struct {
   u16 majorVersion;

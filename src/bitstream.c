@@ -7,7 +7,7 @@ Result *Bitstream_fromFile(Bitstream *self, const char *path) {
 
 Result *Bitstream_slice(Bitstream *self, const Bitstream *src, u64 offset, u64 size) {
   if (offset + size > src->size) {
-    return ERRF("Bitstream slice is out of bounds\n\toffset: %lu\n\tsize: %lu\n\t", offset, src->size);
+    return ERR("Bitstream slice is out of bounds\n\toffset: %lu\n\tsize: %lu\n\t", offset, src->size);
   }
   self->i = 0;
   self->size = size;
@@ -15,13 +15,23 @@ Result *Bitstream_slice(Bitstream *self, const Bitstream *src, u64 offset, u64 s
   return OK;
 }
 
-void Bitstream_skip(Bitstream *self, u64 bytes) { self->i += bytes; }
+Result *Bitstream_skip(Bitstream *self, u64 bytes) {
+  self->i += bytes;
+
+  if (self->i >= self->size) {
+    return ERR(
+        "Encountered Eof while skipping %lu bytes in bitstream\n\toffset: %lu\n\tsize: %lu", bytes, self->i, self->size
+    );
+  }
+
+  return OK;
+}
 
 Result *Bitstream_readU8(Bitstream *self, u8 *buf) {
-  if (self->i++ == self->size) {
-    return ERRF("Encountered Eof while reading bitstream\n\toffset: %lu\n\tsize: %lu", self->i, self->size);
+  if (self->i == self->size) {
+    return ERR("Encountered Eof while reading bitstream\n\toffset: %lu\n\tsize: %lu", self->i, self->size);
   }
-  *buf = self->buf[self->i];
+  *buf = self->buf[self->i++];
   return OK;
 }
 
@@ -29,7 +39,7 @@ Result *Bitstream_readU8(Bitstream *self, u8 *buf) {
   u64 _start = self->i;                                                                                                \
   self->i += _s;                                                                                                       \
   if (self->i > self->size) {                                                                                          \
-    return ERRF("Encountered Eof while reading bitstream\n\toffset: %lu\n\tsize: %lu", self->i, self->size);           \
+    return ERR("Encountered Eof while reading bitstream\n\toffset: %lu\n\tsize: %lu", self->i, self->size);            \
   }                                                                                                                    \
   memcpy(buf, &self->buf[_start], _s)
 
@@ -64,6 +74,12 @@ Result *Bitstream_readI64(Bitstream *self, i64 *buf) {
 }
 
 Result *Bitstream_readI16(Bitstream *self, i16 *buf) {
+  READ_BYTES(sizeof(i16));
+  BE_SWAP(*buf, 16);
+  return OK;
+}
+
+Result *Bitstream_readI16_(Bitstream *self, i16 *buf) {
   READ_BYTES(sizeof(i16));
   BE_SWAP(*buf, 16);
   return OK;

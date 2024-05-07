@@ -3,10 +3,15 @@ project(gfx)
 
 message("Compiler: ${CMAKE_C_COMPILER_ID}")
 message("Compiler: ${CMAKE_C_COMPILER}")
+message("Workspace: ${PROJECT_SOURCE_DIR}")
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
-add_compile_options(-g -Wall -Wextra -Wpedantic -Wstrict-aliasing -fsanitize=address -Wno-gnu-zero-variadic-macro-arguments -Wno-pointer-arith)
+add_compile_options(
+  -g -Wall -Wextra -Wpedantic -Wstrict-aliasing -fsanitize=address
+  -ffile-prefix-map=${PROJECT_SOURCE_DIR}/src=
+  -Wno-gnu-zero-variadic-macro-arguments -Wno-pointer-arith
+)
 add_link_options(-fsanitize=address)
 
 file(GLOB SOURCES src/*.c src/**/*.c)

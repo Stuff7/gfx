@@ -35,9 +35,12 @@ print_struct table
 continue
 
 print_struct glyph
-print_struct glyph.glyphs['A'].numPoints
-print_ptr glyph.glyphs['A'].points glyph.glyphs['A'].numPoints
-print_ptr glyph.glyphs['A'].endPtsOfContours glyph.glyf['A'].numberOfContours
+set $char = 'E'
+print_struct *glyph.glyphs[$char].header
+print_struct glyph.glyphs[$char].numPoints
+print_ptr glyph.glyphs[$char].points glyph.glyphs[$char].numPoints
+print /t *glyph.glyphs[$char].flags@glyph.glyphs[$char].numPoints
+print_ptr glyph.glyphs[$char].endPtsOfContours glyph.glyphs[$char].header.numberOfContours
 
 # print_struct gdef
 # print_struct gpos

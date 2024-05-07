@@ -54,10 +54,13 @@ Result *FpgmTable_parse(FpgmTable *self, Bitstream *bs) {
 void FpgmTable_free(FpgmTable *self) { free(self->instructions); }
 
 Result *MaxpTable_parse(MaxpTable *self, Bitstream *bs) {
-  TRY(Bitstream_readU32(bs, &self->version));
+  u32 version;
+  TRY(Bitstream_readU32(bs, &version));
+  self->major = version >> 16;
+  self->minor = version << 16 >> 16;
   TRY(Bitstream_readU16(bs, &self->numGlyphs));
 
-  if (self->version == 0x00010000) {
+  if (self->major == 1) {
     TRY(Bitstream_readU16(bs, &self->maxPoints));
     TRY(Bitstream_readU16(bs, &self->maxContours));
     TRY(Bitstream_readU16(bs, &self->maxCompositePoints));
@@ -82,6 +85,11 @@ Result *HeadTable_parse(HeadTable *self, Bitstream *bs) {
   TRY(Bitstream_readI32(bs, &self->fontRevision));
   TRY(Bitstream_readU32(bs, &self->checksumAdjustment));
   TRY(Bitstream_readU32(bs, &self->magicNumber));
+  ASSERT(
+      self->magicNumber == 0x5F0F3CF5,
+      "Invalid magic number\n\tExpected: 0x5F0F3CF5\n\tReceived: 0x%08X",
+      self->magicNumber
+  );
   TRY(Bitstream_readU16(bs, &self->flags));
   TRY(Bitstream_readU16(bs, &self->unitsPerEm));
   TRY(Bitstream_readI64(bs, &self->created));

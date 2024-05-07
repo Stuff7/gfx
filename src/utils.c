@@ -1,4 +1,5 @@
 #include "utils.h"
+#include <time.h>
 
 #define MAX_UTF8_CHAR_SIZE 4
 
@@ -11,13 +12,26 @@ bool Result_unwrap(Result *res) {
       fprintf(stderr, "%s\n", res->reason);
       free(res->reason);
     }
-    if (res->err == Error_System) { perror("\x1b[1m\x1b[38;5;225mSystem\x1b[0m"); }
+    if (res->err == Error_System) { perror(FGID(225, BOLD("System"))); }
     Result *parent = res->parent;
     free(res);
     if (parent) { Result_unwrap(parent); }
   }
 
   return isErr;
+}
+
+char *getFormattedTime(void) {
+  time_t timer;
+  struct tm *timeinfo;
+
+  time(&timer);
+  timeinfo = localtime(&timer);
+
+  static char timestr[12];
+  strftime(timestr, sizeof(timestr), "%I:%M:%S %p", timeinfo);
+
+  return timestr;
 }
 
 char *decodeUnicodeBMP(const u8 *bytes, u64 length) {

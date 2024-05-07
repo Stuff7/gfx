@@ -1,5 +1,6 @@
 #include "game.h"
 #include "renderer.h"
+#include "utils.h"
 
 #define SURF_SIZE 100
 static const uint CUBE_LEN = SURF_SIZE * SURF_SIZE;
@@ -178,7 +179,7 @@ static void processInput(State *state, Key key, KeyState keyState) {
       Camera_updateMatrix(&state->camera);
       return;
     case Key_P:
-      printf("CURSOR: %.2f\t%.2f\n", state->cursor.x, state->cursor.y);
+      LOG("CURSOR: %.2f\t%.2f\n", state->cursor.x, state->cursor.y);
       return;
     case Key_Kp_0:
       state->idx = 0;
