@@ -108,3 +108,80 @@ Result *HeadTable_parse(HeadTable *self, Bitstream *bs) {
 
   return OK;
 }
+
+Result *GlyfTable_parse(GlyfTable *self, Bitstream *bs) {
+  TRY(Bitstream_readI16(bs, &self->numberOfContours));
+  TRY(Bitstream_readI16(bs, &self->xMin));
+  TRY(Bitstream_readI16(bs, &self->yMin));
+  TRY(Bitstream_readI16(bs, &self->xMax));
+  TRY(Bitstream_readI16(bs, &self->yMax));
+  TRY(Bitstream_slice(&self->glyphStream, bs, bs->i, bs->size - bs->i));
+
+  return OK;
+}
+
+Result *HheaTable_parse(HheaTable *self, Bitstream *bs) {
+  TRY(Bitstream_readU16(bs, &self->majorVersion));
+  TRY(Bitstream_readU16(bs, &self->minorVersion));
+  TRY(Bitstream_readI16(bs, &self->ascender));
+  TRY(Bitstream_readI16(bs, &self->descender));
+  TRY(Bitstream_readI16(bs, &self->lineGap));
+  TRY(Bitstream_readU16(bs, &self->advanceWidthMax));
+  TRY(Bitstream_readI16(bs, &self->minLeftSideBearing));
+  TRY(Bitstream_readI16(bs, &self->minRightSideBearing));
+  TRY(Bitstream_readI16(bs, &self->xMaxExtent));
+  TRY(Bitstream_readI16(bs, &self->caretSlopeRise));
+  TRY(Bitstream_readI16(bs, &self->caretSlopeRun));
+  TRY(Bitstream_readI16(bs, &self->caretOffset));
+  static const u64 RESERVED = 4 * sizeof(i16);
+  TRY(Bitstream_skip(bs, RESERVED));
+  TRY(Bitstream_readI16(bs, &self->metricDataFormat));
+  TRY(Bitstream_readU16(bs, &self->numberOfHMetrics));
+  return OK;
+}
+
+Result *LocaTable_parse(LocaTable *self, Bitstream *bs, const HeadTable *head, const MaxpTable *maxp) {
+  self->size = maxp->numGlyphs + 1;
+
+  if (head->indexToLocFormat == LocFormat_Short) {
+    ASSERT_ALLOC(u32, self->size, self->offsets);
+    for (u32 i = 0; i < self->size; i++) {
+      TRY(Bitstream_readU16(bs, (u16 *)(&self->offsets[i])));
+      self->offsets[i] *= 2;
+    }
+  }
+  else {
+    ASSERT_ALLOC(u32, self->size, self->offsets);
+    for (u32 i = 0; i < self->size; i++) {
+      TRY(Bitstream_readU32(bs, &self->offsets[i]));
+    }
+  }
+
+  return OK;
+}
+
+void LocaTable_free(LocaTable *self) { free(self->offsets); }
+
+Result *HmtxTable_parse(HmtxTable *self, Bitstream *bs, const HheaTable *hhea, const MaxpTable *maxp) {
+  self->hMetrics = malloc(hhea->numberOfHMetrics * sizeof(LongHorMetric));
+  for (int i = 0; i < hhea->numberOfHMetrics; i++) {
+    LongHorMetric *hMetric = &self->hMetrics[i];
+    TRY(Bitstream_readU16(bs, &hMetric->advanceWidth));
+    TRY(Bitstream_readI16(bs, &hMetric->lsb));
+  }
+
+  self->leftSideBearingsSize = maxp->numGlyphs - hhea->numberOfHMetrics;
+  if (self->leftSideBearingsSize > 0) {
+    self->leftSideBearings = malloc(self->leftSideBearingsSize * sizeof(i16));
+    for (u64 i = 0; i < self->leftSideBearingsSize; i++) {
+      TRY(Bitstream_readI16(bs, &self->leftSideBearings[i]));
+    }
+  }
+
+  return OK;
+}
+
+void HmtxTable_free(HmtxTable *self) {
+  free(self->hMetrics);
+  if (self->leftSideBearingsSize > 0) { free(self->leftSideBearings); }
+}

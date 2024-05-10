@@ -1,5 +1,6 @@
 #include "tables.h"
 #include "types.h"
+#include <stdlib.h>
 #include <string.h>
 
 const u64 MAX_ALLOC_SIZE = 1024 * 1024 * 4;
@@ -36,23 +37,25 @@ Result *GlyphParser_new(GlyphParser *self, TableDir *dir) {
 
   TRY(TableDir_findTable(dir, TableTag_Glyf, &bs));
   Bitstream glyfBs;
-  self->glyf = malloc(self->maxp.numGlyphs * sizeof(GlyfTable));
+  self->glyphs = malloc(self->maxp.numGlyphs * sizeof(Glyph));
 
   for (u32 i = 0; i < self->maxp.numGlyphs; i++) {
     u32 offset = self->loca.offsets[i];
     if (self->loca.offsets[i + 1] - offset) {
       TRY(Bitstream_slice(&glyfBs, &bs, offset, bs.size - offset));
-      TRY(GlyfTable_parse(&self->glyf[i], &glyfBs));
+      TRY(GlyfTable_parse(&self->glyphs[i].header, &glyfBs));
     }
-    else { memset(&self->glyf[i], 0, sizeof(GlyfTable)); }
+    else { memset(&self->glyphs[i].header, 0, sizeof(GlyfTable)); }
+    TRY(Glyph_parse(self, i), "Parsing glyph %u / %u", i, self->maxp.numGlyphs);
   }
 
-  ASSERT_ALLOC(Glyph, 0xFFFF, self->glyphs);
-  for (u16 c = 0x0000; c < 0xFFFF; c++) {
-    u16 idx;
-    TRY(CmapSubtable_findGlyphIdFromCharCode(&self->cmap.subtable, c, &idx));
-    TRY(Glyph_parse(&self->glyphs[c], &self->glyf[idx], self), "Parsing glyph %u / %u", idx, self->maxp.numGlyphs);
-  }
+  return OK;
+}
+
+Result *GlyphParser_getGlyph(GlyphParser *self, u16 c, Glyph *glyph) {
+  u16 idx;
+  TRY(CmapSubtable_findGlyphIdFromCharCode(&self->cmap.subtable, self->maxp.numGlyphs, c, &idx));
+  *glyph = self->glyphs[idx];
 
   return OK;
 }
@@ -61,14 +64,13 @@ void GlyphParser_free(GlyphParser *self) {
   HmtxTable_free(&self->hmtx);
   LocaTable_free(&self->loca);
   CmapTable_free(&self->cmap);
-  for (int i = 0; i < 0xFFFF; i++) {
+  for (int i = 0; i < self->maxp.numGlyphs; i++) {
     Glyph_free(&self->glyphs[i]);
   }
   free(self->glyphs);
-  free(self->glyf);
 }
 
-Result *Glyph_parsePoints(Glyph *self, bool isX) {
+Result *Glyph_parseSimplePoints(Glyph *self, bool isX) {
   u8 u8Mask = isX ? U8_X : U8_Y;
   u8 instructionMask = isX ? INSTRUCTION_X : INSTRUCTION_Y;
   i16 coord = 0;
@@ -78,12 +80,12 @@ Result *Glyph_parsePoints(Glyph *self, bool isX) {
 
     if (MASK(flag, u8Mask)) {
       u8 offset;
-      TRY(Bitstream_readU8(&self->header->glyphStream, &offset));
+      TRY(Bitstream_readU8(&self->header.glyphStream, &offset));
       coord += MASK(flag, instructionMask) ? offset : -offset;
     }
     else if (!MASK(flag, instructionMask)) {
       i16 delta;
-      TRY(Bitstream_readI16(&self->header->glyphStream, &delta));
+      TRY(Bitstream_readI16(&self->header.glyphStream, &delta));
       coord += delta;
     }
 
@@ -96,56 +98,61 @@ Result *Glyph_parsePoints(Glyph *self, bool isX) {
   return OK;
 }
 
-Result *Glyph_parse(Glyph *self, GlyfTable *header, GlyphParser *parser) {
-  self->header = header;
-  self->needFree = self->header->numberOfContours > 0 && self->header->glyphStream.size > 0;
-  if (!self->needFree) { return OK; }
+Result *Glyph_parse(GlyphParser *self, u64 glyphId) {
+  Glyph *glyph = &self->glyphs[glyphId];
+  glyph->needFree = glyph->header.numberOfContours != 0 && glyph->header.glyphStream.size > 0;
 
-  ASSERT_ALLOC(u16, self->header->numberOfContours, self->endPtsOfContours);
+  if (!glyph->needFree) { return OK; }
+
+  if (glyph->header.numberOfContours >= 0) { TRY(Glyph_parseSimple(glyph, &self->maxp)); }
+  else { TRY(Glyph_parseCompound(self, glyphId)); }
+
+  return OK;
+}
+
+Result *Glyph_parseSimple(Glyph *self, MaxpTable *maxp) {
+  ASSERT_ALLOC(u16, self->header.numberOfContours, self->endPtsOfContours);
 
   self->numPoints = 0;
-  for (i16 i = 0; i < self->header->numberOfContours; i++) {
-    TRY(Bitstream_readU16(&self->header->glyphStream, &self->endPtsOfContours[i]));
-    ASSERT(
-        self->endPtsOfContours[i] != 0xFFFFu, "Invalid endPtsOfContour [%d / %d]", i, self->header->numberOfContours
-    );
+  for (i16 i = 0; i < self->header.numberOfContours; i++) {
+    TRY(Bitstream_readU16(&self->header.glyphStream, &self->endPtsOfContours[i]));
+    ASSERT(self->endPtsOfContours[i] != 0xFFFFu, "Invalid endPtsOfContour [%d / %d]", i, self->header.numberOfContours);
     ASSERT(
         self->endPtsOfContours[i] >= self->numPoints,
         "Decreasing endPtsOfContour [%d / %d]",
         i,
-        self->header->numberOfContours
+        self->header.numberOfContours
     );
 
     self->numPoints = self->endPtsOfContours[i];
   }
   self->numPoints++;
 
-  TRY(Bitstream_readU16(&self->header->glyphStream, &self->instructionsLength));
+  u16 instructionsLength;
+  TRY(Bitstream_readU16(&self->header.glyphStream, &instructionsLength));
 
-  if (parser->maxp.major == 1) {
-    if (self->numPoints > parser->maxp.maxPoints) {
-      WARN(
-          "numPoints exceeds maxp.maxPoints\n\tnumPoints: %u\n\tmaxPoints: %u", self->numPoints, parser->maxp.maxPoints
-      );
-      parser->maxp.maxPoints = self->numPoints;
+  if (maxp->major == 1) {
+    if (self->numPoints > maxp->maxPoints) {
+      WARN("numPoints exceeds maxp.maxPoints\n\tnumPoints: %u\n\tmaxPoints: %u", self->numPoints, maxp->maxPoints);
+      maxp->maxPoints = self->numPoints;
     }
-    if (parser->maxp.maxSizeOfInstructions < self->instructionsLength) {
+    if (maxp->maxSizeOfInstructions < instructionsLength) {
       WARN(
           "instructionsLength exceeds maxp.maxSizeOfInstructions\n\tinstructionsLength: %u\n\tmaxSizeOfInstructions: "
           "%u",
-          self->instructionsLength,
-          parser->maxp.maxSizeOfInstructions
+          instructionsLength,
+          maxp->maxSizeOfInstructions
       );
-      parser->maxp.maxSizeOfInstructions = self->instructionsLength;
+      maxp->maxSizeOfInstructions = instructionsLength;
     }
   }
 
-  TRY(Bitstream_skip(&self->header->glyphStream, self->instructionsLength));
+  TRY(Bitstream_skip(&self->header.glyphStream, instructionsLength));
   ASSERT_ALLOC(u8, self->numPoints, self->flags);
 
   u8 flag, repeat;
   for (u16 i = 0; i < self->numPoints; i++) {
-    TRY(Bitstream_readU8(&self->header->glyphStream, &flag));
+    TRY(Bitstream_readU8(&self->header.glyphStream, &flag));
 
     ASSERT(
         (!MASK(flag, OVERLAP_SIMPLE) || i == 0) && !MASK(flag, RESERVED_BIT),
@@ -158,7 +165,7 @@ Result *Glyph_parse(Glyph *self, GlyfTable *header, GlyphParser *parser) {
     self->flags[i] = flag & ~REPEAT;
 
     if (MASK(flag, REPEAT)) {
-      TRY(Bitstream_readU8(&self->header->glyphStream, &repeat));
+      TRY(Bitstream_readU8(&self->header.glyphStream, &repeat));
       ASSERT(repeat, "Repeat is 0 in flag 0b%08B [%u / %u]", flag, i, self->numPoints);
 
       ASSERT(
@@ -179,94 +186,111 @@ Result *Glyph_parse(Glyph *self, GlyfTable *header, GlyphParser *parser) {
 
   ASSERT_ALLOC(GlyphPoint, self->numPoints, self->points);
   memset(self->points, 0, sizeof(GlyphPoint) * self->numPoints);
-  TRY(Glyph_parsePoints(self, true));
-  TRY(Glyph_parsePoints(self, false));
-  header->glyphStream.i = 0;
+  TRY(Glyph_parseSimplePoints(self, true));
+  TRY(Glyph_parseSimplePoints(self, false));
+  self->header.glyphStream.i = 0;
+
+  return OK;
+}
+
+static const u16 ARG_1_AND_2_ARE_WORDS = 1;
+static const u16 WE_HAVE_A_SCALE = 1 << 3;
+static const u16 MORE_COMPONENTS = 1 << 5;
+static const u16 WE_HAVE_AN_X_AND_Y_SCALE = 1 << 6;
+static const u16 WE_HAVE_A_TWO_BY_TWO = 1 << 7;
+static const u16 WE_HAVE_INSTRUCTIONS = 1 << 8;
+
+Result *Glyph_parseCompound(GlyphParser *parser, u64 selfId) {
+  Glyph *self = &parser->glyphs[selfId];
+  MaxpTable *maxp = &parser->maxp;
+
+  u16 flags = 0;
+  u16 glyphId = 0;
+
+  self->components = malloc(maxp->maxComponentElements * sizeof(CompoundGlyph));
+  self->numComponents = 0;
+
+  do {
+    TRY(Bitstream_readU16(&self->header.glyphStream, &flags));
+    TRY(Bitstream_readU16(&self->header.glyphStream, &glyphId));
+    ASSERT(glyphId < maxp->numGlyphs, "Invalid glyph id\n\tExpected: < %u\n\tReceived: %u", maxp->numGlyphs, glyphId);
+    ASSERT(
+        self->numComponents < maxp->maxComponentElements,
+        "numComponents exceeds maxp.maxComponentElements %u",
+        maxp->maxComponentElements
+    );
+    CompoundGlyph *glyph = &self->components[self->numComponents++];
+    glyph->glyphId = glyphId;
+
+    if (flags & ARG_1_AND_2_ARE_WORDS) {
+      i16 argument1;
+      i16 argument2;
+      TRY(Bitstream_readI16(&self->header.glyphStream, &argument1));
+      TRY(Bitstream_readI16(&self->header.glyphStream, &argument2));
+      glyph->x = argument1;
+      glyph->y = argument2;
+    }
+    else {
+      u8 argument1;
+      u8 argument2;
+      TRY(Bitstream_readU8(&self->header.glyphStream, &argument1));
+      TRY(Bitstream_readU8(&self->header.glyphStream, &argument2));
+      glyph->x = argument1;
+      glyph->y = argument2;
+    }
+
+    if (flags & WE_HAVE_A_SCALE) {
+      i16 scale;
+      TRY(Bitstream_readI16(&self->header.glyphStream, &scale));
+    }
+    else if (flags & WE_HAVE_AN_X_AND_Y_SCALE) {
+      i16 xscale;
+      i16 yscale;
+      TRY(Bitstream_readI16(&self->header.glyphStream, &xscale));
+      TRY(Bitstream_readI16(&self->header.glyphStream, &yscale));
+    }
+    else if (flags & WE_HAVE_A_TWO_BY_TWO) {
+      i16 xscale;
+      i16 scale01;
+      i16 scale10;
+      i16 yscale;
+      TRY(Bitstream_readI16(&self->header.glyphStream, &xscale));
+      TRY(Bitstream_readI16(&self->header.glyphStream, &scale10));
+      TRY(Bitstream_readI16(&self->header.glyphStream, &scale01));
+      TRY(Bitstream_readI16(&self->header.glyphStream, &yscale));
+    }
+  }
+  while (flags & MORE_COMPONENTS);
+
+  if (flags & WE_HAVE_INSTRUCTIONS) {
+    u16 instructionsLength;
+    TRY(Bitstream_readU16(&self->header.glyphStream, &instructionsLength));
+
+    if (maxp->major == 1 && maxp->maxSizeOfInstructions < instructionsLength) {
+      WARN(
+          "Instructions length exceeds maxp.maxSizeOfInstructions "
+          "%d: %d",
+          maxp->maxSizeOfInstructions,
+          instructionsLength
+      );
+      maxp->maxSizeOfInstructions = instructionsLength;
+    }
+
+    TRY(Bitstream_skip(&self->header.glyphStream, instructionsLength));
+  }
+
+  self->components = realloc(self->components, self->numComponents * sizeof(CompoundGlyph));
 
   return OK;
 }
 
 void Glyph_free(Glyph *self) {
-  if (self->needFree) {
+  if (!self->needFree) { return; }
+
+  if (self->header.numberOfContours < 0) { free(self->components); }
+  else {
     free(self->endPtsOfContours);
     free(self->flags);
     free(self->points);
   }
-}
-
-Result *GlyfTable_parse(GlyfTable *self, Bitstream *bs) {
-  TRY(Bitstream_readI16(bs, &self->numberOfContours));
-  TRY(Bitstream_readI16(bs, &self->xMin));
-  TRY(Bitstream_readI16(bs, &self->yMin));
-  TRY(Bitstream_readI16(bs, &self->xMax));
-  TRY(Bitstream_readI16(bs, &self->yMax));
-  TRY(Bitstream_slice(&self->glyphStream, bs, bs->i, bs->size - bs->i));
-
-  return OK;
-}
-
-Result *HheaTable_parse(HheaTable *self, Bitstream *bs) {
-  TRY(Bitstream_readU16(bs, &self->majorVersion));
-  TRY(Bitstream_readU16(bs, &self->minorVersion));
-  TRY(Bitstream_readI16(bs, &self->ascender));
-  TRY(Bitstream_readI16(bs, &self->descender));
-  TRY(Bitstream_readI16(bs, &self->lineGap));
-  TRY(Bitstream_readU16(bs, &self->advanceWidthMax));
-  TRY(Bitstream_readI16(bs, &self->minLeftSideBearing));
-  TRY(Bitstream_readI16(bs, &self->minRightSideBearing));
-  TRY(Bitstream_readI16(bs, &self->xMaxExtent));
-  TRY(Bitstream_readI16(bs, &self->caretSlopeRise));
-  TRY(Bitstream_readI16(bs, &self->caretSlopeRun));
-  TRY(Bitstream_readI16(bs, &self->caretOffset));
-  static const u64 RESERVED = 4 * sizeof(i16);
-  TRY(Bitstream_skip(bs, RESERVED));
-  TRY(Bitstream_readI16(bs, &self->metricDataFormat));
-  TRY(Bitstream_readU16(bs, &self->numberOfHMetrics));
-  return OK;
-}
-
-Result *LocaTable_parse(LocaTable *self, Bitstream *bs, const HeadTable *head, const MaxpTable *maxp) {
-  self->size = maxp->numGlyphs + 1;
-
-  if (head->indexToLocFormat == LocFormat_Short) {
-    ASSERT_ALLOC(u32, self->size, self->offsets);
-    for (u32 i = 0; i < self->size; i++) {
-      TRY(Bitstream_readU16(bs, (u16 *)(&self->offsets[i])));
-      self->offsets[i] *= 2;
-    }
-  }
-  else {
-    ASSERT_ALLOC(u32, self->size, self->offsets);
-    for (u32 i = 0; i < self->size; i++) {
-      TRY(Bitstream_readU32(bs, &self->offsets[i]));
-    }
-  }
-
-  return OK;
-}
-
-void LocaTable_free(LocaTable *self) { free(self->offsets); }
-
-Result *HmtxTable_parse(HmtxTable *self, Bitstream *bs, const HheaTable *hhea, const MaxpTable *maxp) {
-  self->hMetrics = malloc(hhea->numberOfHMetrics * sizeof(LongHorMetric));
-  for (int i = 0; i < hhea->numberOfHMetrics; i++) {
-    LongHorMetric *hMetric = &self->hMetrics[i];
-    TRY(Bitstream_readU16(bs, &hMetric->advanceWidth));
-    TRY(Bitstream_readI16(bs, &hMetric->lsb));
-  }
-
-  self->leftSideBearingsSize = maxp->numGlyphs - hhea->numberOfHMetrics;
-  if (self->leftSideBearingsSize > 0) {
-    self->leftSideBearings = malloc(self->leftSideBearingsSize * sizeof(i16));
-    for (u64 i = 0; i < self->leftSideBearingsSize; i++) {
-      TRY(Bitstream_readI16(bs, &self->leftSideBearings[i]));
-    }
-  }
-
-  return OK;
-}
-
-void HmtxTable_free(HmtxTable *self) {
-  free(self->hMetrics);
-  if (self->leftSideBearingsSize > 0) { free(self->leftSideBearings); }
 }

@@ -128,7 +128,7 @@ Result *CmapTable_findOffset(CmapTable *self, int *offset) {
   return ERR("Could not find any supported cmap platform/encoding");
 }
 
-Result *CmapSubtable_findGlyphIdFromCharCode(CmapSubtable *self, u16 c, u16 *glyphId) {
+Result *CmapSubtable_findGlyphIdFromCharCode(CmapSubtable *self, u16 numGlyphs, u16 c, u16 *glyphId) {
   for (u16 i = 0; i < self->segCount; ++i) {
     if (c > self->endCode[i]) { continue; }
     if (c < self->startCode[i]) { break; }
@@ -142,18 +142,11 @@ Result *CmapSubtable_findGlyphIdFromCharCode(CmapSubtable *self, u16 c, u16 *gly
 
       if (*glyphId != 0) { *glyphId = (*glyphId + self->idDelta[i]) & 0xFFFF; }
     }
+    if (*glyphId >= numGlyphs) { return ERR("Glyph ID out of range\n\tglyphId: %u\n\tchar: %u", *glyphId, c); }
     return OK;
   }
 
   *glyphId = 0;
-  return OK;
-}
-
-Result *CmapSubtable_getBMPCharGlyphIDMap(CmapSubtable *self, u16 *glyphIds) {
-  for (u16 c = 0x0000; c < 0xFFFF; c++) {
-    TRY(CmapSubtable_findGlyphIdFromCharCode(self, c, &glyphIds[c]));
-  }
-
   return OK;
 }
 
@@ -172,6 +165,7 @@ Result *CmapSubtable_parse(CmapSubtable *self, Bitstream *bs) {
   TRY(Bitstream_readU16(bs, &self->language));
   TRY(Bitstream_readU16(bs, &self->segCount));
   self->segCount /= 2;
+  ASSERT(self->segCount >= 1, "Invalid segCount\n\tExpected: >= 1\n\tReceived: %u", self->segCount);
   TRY(Bitstream_readU16(bs, &self->searchRange));
   TRY(Bitstream_readU16(bs, &self->entrySelector));
   TRY(Bitstream_readU16(bs, &self->rangeShift));
@@ -205,7 +199,7 @@ Result *CmapTable_parse(CmapTable *self, Bitstream *bs) {
     EncodingRecord_parse(&self->encodingRecords[i], bs);
   }
 
-  int subtableOffset;
+  int subtableOffset = 6490;
   TRY(CmapTable_findOffset(self, &subtableOffset));
   TRY(Bitstream_slice(bs, bs, subtableOffset, bs->size - subtableOffset));
   return CmapSubtable_parse(&self->subtable, bs);

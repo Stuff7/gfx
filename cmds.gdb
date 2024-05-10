@@ -13,8 +13,7 @@ set logging overwrite on
 set logging enabled on
 show args
 
-break TableDir_parse
-break /main.c:66
+break /main.c:63
 
 run
 
@@ -30,17 +29,26 @@ define print_ptr
   end
 end
 
-finish
 print_struct table
-continue
 
 print_struct glyph
-set $char = 'E'
-print_struct *glyph.glyphs[$char].header
-print_struct glyph.glyphs[$char].numPoints
-print_ptr glyph.glyphs[$char].points glyph.glyphs[$char].numPoints
-print /t *glyph.glyphs[$char].flags@glyph.glyphs[$char].numPoints
-print_ptr glyph.glyphs[$char].endPtsOfContours glyph.glyphs[$char].header.numberOfContours
+set $_glyph = (Glyph*)malloc(sizeof(Glyph))
+call GlyphParser_getGlyph(&glyph, 0x00C0, $_glyph)
+print_struct $_glyph.header
+
+if $_glyph.header.numberOfContours >= 0
+  printf "SIMPLE\n"
+  print_struct $_glyph.numPoints
+  print_ptr $_glyph.points $_glyph.numPoints
+  print /t *$_glyph.flags@$_glyph.numPoints
+  print_ptr $_glyph.endPtsOfContours $_glyph.header.numberOfContours
+else
+  printf "COMPOUND\n"
+  print_ptr $_glyph.components $_glyph.numComponents
+end
+call (void) free($_glyph)
+
+print_ptr glyph.cmap.encodingRecords glyph.cmap.numTables
 
 # print_struct gdef
 # print_struct gpos
@@ -56,7 +64,6 @@ print_ptr glyph.glyphs[$char].endPtsOfContours glyph.glyphs[$char].header.number
 # print_struct gasp
 # print_ptr gasp.gaspRanges gasp.numRanges
 
-# print_ptr glyph.cmap.encodingRecords glyph.cmap.numTables
 # print_ptr glyph.cmap.subtable.startCode 10
 # print_ptr glyph.cmap.subtable.endCode 10
 # print_ptr glyph.cmap.subtable.idDelta 10

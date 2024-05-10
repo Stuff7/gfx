@@ -137,8 +137,7 @@ typedef struct {
   Bitstream glyphIdStream;
 } CmapSubtable;
 
-Result *CmapSubtable_findGlyphIdFromCharCode(CmapSubtable *self, u16 c, u16 *glyphId);
-Result *CmapSubtable_getBMPCharGlyphIDMap(CmapSubtable *self, u16 *glyphIds);
+Result *CmapSubtable_findGlyphIdFromCharCode(CmapSubtable *self, u16 numGlyphs, u16 c, u16 *glyphId);
 
 typedef struct {
   u16 version;
@@ -167,13 +166,27 @@ typedef struct {
 } GlyphPoint;
 
 typedef struct {
+  u16 glyphId;
+  i32 x, y;
+} CompoundGlyph;
+
+typedef struct {
+  GlyfTable header;
   bool needFree;
-  u16 *endPtsOfContours;
-  u16 instructionsLength;
-  u16 numPoints;
-  u8 *flags;
-  GlyphPoint *points;
-  GlyfTable *header;
+
+  union {
+    struct {
+      u16 numPoints;
+      GlyphPoint *points;
+      u16 *endPtsOfContours;
+      u8 *flags;
+    };
+
+    struct {
+      CompoundGlyph *components;
+      u16 numComponents;
+    };
+  };
 } Glyph;
 
 typedef struct {
@@ -183,16 +196,18 @@ typedef struct {
   LocaTable loca;
   HmtxTable hmtx;
   CmapTable cmap;
-  GlyfTable *glyf;
   Glyph *glyphs;
 } GlyphParser;
 
 Result *GlyphParser_new(GlyphParser *self, TableDir *dir);
+Result *GlyphParser_getGlyph(GlyphParser *self, u16 c, Glyph *glyph);
 Result *GlyphParser_mapGlyphs(GlyphParser *self, Glyph map[0xFFFF]);
 void GlyphParser_free(GlyphParser *self);
 
-Result *Glyph_parsePoints(Glyph *self, bool isX);
-Result *Glyph_parse(Glyph *self, GlyfTable *header, GlyphParser *parser);
+Result *Glyph_parse(GlyphParser *self, u64 glyphId);
+Result *Glyph_parseSimplePoints(Glyph *self, bool isX);
+Result *Glyph_parseSimple(Glyph *self, MaxpTable *maxp);
+Result *Glyph_parseCompound(GlyphParser *parser, u64 selfId);
 void Glyph_free(Glyph *self);
 
 typedef struct {

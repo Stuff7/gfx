@@ -19,48 +19,45 @@ int main(int argc, char **argv) {
     Bitstream bs;
     if (UNWRAP(Bitstream_fromFile(&bs, argv[2]))) { return -1; }
     TableDir table;
-    if (UNWRAP(TableDir_parse(&table, &bs))) { return -1; }
+    if (UNWRAP(TableDir_parse(&table, &bs))) { goto Bitstream_free; }
 
     Bitstream data;
-    if (UNWRAP(Bitstream_slice(&data, &bs, 0, bs.size))) { return -1; }
+    if (UNWRAP(Bitstream_slice(&data, &bs, 0, bs.size))) { goto Bitstream_free; }
     GDEFTable gdef;
-    if (UNWRAP(TableDir_findTable(&table, TableTag_GDEF, &data))) { return -1; }
+    if (UNWRAP(TableDir_findTable(&table, TableTag_GDEF, &data))) { goto Bitstream_free; }
     if (data.size) {
-      if (UNWRAP(GDEFTable_parse(&gdef, &data))) { return -1; }
+      if (UNWRAP(GDEFTable_parse(&gdef, &data))) { goto Bitstream_free; }
     }
     GPOSTable gpos;
-    if (UNWRAP(TableDir_findTable(&table, TableTag_GPOS, &data))) { return -1; }
+    if (UNWRAP(TableDir_findTable(&table, TableTag_GPOS, &data))) { goto Bitstream_free; }
     if (data.size) {
-      if (UNWRAP(GPOSTable_parse(&gpos, &data))) { return -1; }
+      if (UNWRAP(GPOSTable_parse(&gpos, &data))) { goto Bitstream_free; }
     }
     GSUBTable gsub;
-    if (UNWRAP(TableDir_findTable(&table, TableTag_GSUB, &data))) { return -1; }
-    if (UNWRAP(GPOSTable_parse(&gsub, &data))) { return -1; }
+    if (UNWRAP(TableDir_findTable(&table, TableTag_GSUB, &data))) { goto Bitstream_free; }
+    if (UNWRAP(GPOSTable_parse(&gsub, &data))) { goto Bitstream_free; }
     OS2Table os2;
-    if (UNWRAP(TableDir_findTable(&table, TableTag_OS2, &data))) { return -1; }
-    if (UNWRAP(OS2Table_parse(&os2, &data))) { return -1; }
+    if (UNWRAP(TableDir_findTable(&table, TableTag_OS2, &data))) { goto Bitstream_free; }
+    if (UNWRAP(OS2Table_parse(&os2, &data))) { goto Bitstream_free; }
     CvtTable cvt;
-    if (UNWRAP(TableDir_findTable(&table, TableTag_Cvt, &data))) { return -1; }
-    if (UNWRAP(CvtTable_parse(&cvt, &data))) { return -1; }
+    if (UNWRAP(TableDir_findTable(&table, TableTag_Cvt, &data))) { goto Bitstream_free; }
+    if (UNWRAP(CvtTable_parse(&cvt, &data))) { goto Bitstream_free; }
     FpgmTable fpgm;
-    if (UNWRAP(TableDir_findTable(&table, TableTag_Fpgm, &data))) { return -1; }
-    if (UNWRAP(FpgmTable_parse(&fpgm, &data))) { return -1; }
+    if (UNWRAP(TableDir_findTable(&table, TableTag_Fpgm, &data))) { goto CvtTable_free; }
+    if (UNWRAP(FpgmTable_parse(&fpgm, &data))) { goto CvtTable_free; }
     GaspTable gasp;
-    if (UNWRAP(TableDir_findTable(&table, TableTag_Gasp, &data))) { return -1; }
-    if (UNWRAP(GaspTable_parse(&gasp, &data))) { return -1; }
+    if (UNWRAP(TableDir_findTable(&table, TableTag_Gasp, &data))) { goto FpgmTable_free; }
+    if (UNWRAP(GaspTable_parse(&gasp, &data))) { goto FpgmTable_free; }
     NameTable name;
-    if (UNWRAP(TableDir_findTable(&table, TableTag_Name, &data))) { return -1; }
-    if (UNWRAP(NameTable_parse(&name, &data))) { return -1; }
+    if (UNWRAP(TableDir_findTable(&table, TableTag_Name, &data))) { goto GaspTable_free; }
+    if (UNWRAP(NameTable_parse(&name, &data))) { goto GaspTable_free; }
 
     GlyphParser glyph;
-    if (UNWRAP(GlyphParser_new(&glyph, &table))) {
-      goto cleanup;
-      return -1;
-    }
+    if (UNWRAP(GlyphParser_new(&glyph, &table))) { goto NameTable_free; }
 
     char **strings = malloc(name.count * sizeof(char *));
     for (int i = 0; i < name.count; i++) {
-      if (UNWRAP(NameRecord_getString(&name.nameRecord[i], &name, &strings[i]))) { return -1; }
+      if (UNWRAP(NameRecord_getString(&name.nameRecord[i], &name, &strings[i]))) { goto GlyphParser_free; }
     }
 
     for (int i = 0; i < name.count; i++) {
@@ -68,12 +65,17 @@ int main(int argc, char **argv) {
     }
     free(strings);
 
-  cleanup:
+  GlyphParser_free:
     GlyphParser_free(&glyph);
-    CvtTable_free(&cvt);
-    FpgmTable_free(&fpgm);
-    GaspTable_free(&gasp);
+  NameTable_free:
     NameTable_free(&name);
+  GaspTable_free:
+    GaspTable_free(&gasp);
+  FpgmTable_free:
+    FpgmTable_free(&fpgm);
+  CvtTable_free:
+    CvtTable_free(&cvt);
+  Bitstream_free:
     Bitstream_free(&bs);
   }
   else if (streq(cmd, "gl")) {
