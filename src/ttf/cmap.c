@@ -171,23 +171,23 @@ Result *CmapSubtable_parse(CmapSubtable *self, Bitstream *bs) {
   TRY(Bitstream_readU16(bs, &self->rangeShift));
 
   Result *ret = OK;
-  FILL_BUF(cleanEndCode, ret, u16, U16, bs, self->segCount, self->endCode);
+  FILL_BUF(endCode_free, ret, u16, U16, bs, self->segCount, self->endCode);
   TRY(Bitstream_readU16(bs, &self->reservedPad));
   ASSERT(self->reservedPad == 0, "Unexpected cmap.reservedPad value\n\tExpected: 0\n\tReceived: %u", self->reservedPad);
 
-  FILL_BUF(cleanStartCode, ret, u16, U16, bs, self->segCount, self->startCode);
-  FILL_BUF(cleanIdDelta, ret, i16, I16, bs, self->segCount, self->idDelta);
+  FILL_BUF(startCode_free, ret, u16, U16, bs, self->segCount, self->startCode);
+  FILL_BUF(idDelta_free, ret, i16, I16, bs, self->segCount, self->idDelta);
   TRY(Bitstream_slice(&self->glyphIdStream, bs, bs->i, bs->size - bs->i));
-  FILL_BUF(cleanIdRangeOffsets, ret, u16, U16, bs, self->segCount, self->idRangeOffsets);
+  FILL_BUF(idRangeOffsets_free, ret, u16, U16, bs, self->segCount, self->idRangeOffsets);
   goto ret;
 
-cleanIdRangeOffsets:
+idRangeOffsets_free:
   free(self->endCode);
-cleanIdDelta:
+idDelta_free:
   free(self->idDelta);
-cleanStartCode:
+startCode_free:
   free(self->startCode);
-cleanEndCode:
+endCode_free:
   free(self->idRangeOffsets);
 ret:
   return ret;
@@ -212,12 +212,12 @@ Result *CmapTable_parse(CmapTable *self, Bitstream *bs) {
 
   int subtableOffset = 6490;
   Result *ret = OK;
-  OK_OR_GOTO(cleanRecords, ret, CmapTable_findOffset(self, &subtableOffset));
-  OK_OR_GOTO(cleanRecords, ret, Bitstream_slice(bs, bs, subtableOffset, bs->size - subtableOffset));
-  OK_OR_GOTO(cleanRecords, ret, CmapSubtable_parse(&self->subtable, bs));
+  OK_OR_GOTO(encodingRecords_free, ret, CmapTable_findOffset(self, &subtableOffset));
+  OK_OR_GOTO(encodingRecords_free, ret, Bitstream_slice(bs, bs, subtableOffset, bs->size - subtableOffset));
+  OK_OR_GOTO(encodingRecords_free, ret, CmapSubtable_parse(&self->subtable, bs));
   goto ret;
 
-cleanRecords:
+encodingRecords_free:
   free(self->encodingRecords);
 ret:
   return ret;
