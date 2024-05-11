@@ -1,5 +1,6 @@
 #include "game.h"
 #include "renderer.h"
+#include "result.h"
 #include "utils.h"
 
 #define SURF_SIZE 100
@@ -39,17 +40,22 @@ Result *State_createScene(State *state, const char *windowTitle) {
     }
   }
 
-  TRY(Window_new(
-      state,
-      windowTitle,
-      WIN_WIDTH,
-      WIN_HEIGHT,
-      (RenderCallback)draw,
-      (InputCallback)processInput,
-      (ResizeCallback)resize,
-      (CursorCallback)mouseInput
-  ));
-  TRY(Shader_new(&state->shader, "shaders/vert.glsl", "shaders/frag.glsl"));
+  Result *ret = OK;
+  OK_OR_GOTO(
+      model_free,
+      ret,
+      Window_new(
+          state,
+          windowTitle,
+          WIN_WIDTH,
+          WIN_HEIGHT,
+          (RenderCallback)draw,
+          (InputCallback)processInput,
+          (ResizeCallback)resize,
+          (CursorCallback)mouseInput
+      )
+  );
+  OK_OR_GOTO(Window_free, ret, Shader_new(&state->shader, "shaders/vert.glsl", "shaders/frag.glsl"));
 
   Window_setCursor(state->cursor.x, state->cursor.y);
   Window_captureCursor((state->cursor.capture = true));
@@ -64,7 +70,15 @@ Result *State_createScene(State *state, const char *windowTitle) {
   resize(state, WIN_WIDTH, WIN_HEIGHT);
   DataBuffer_set(&state->renderer.models, CUBE_LEN, sizeof(Mat4), state->matrices);
   DataBuffer_set(&state->renderer.colors, CUBE_LEN, sizeof(Color), state->colors);
+  goto ret;
 
+Window_free:
+  Window_free();
+model_free:
+  free(state->model);
+  free(state->matrices);
+  free(state->colors);
+ret:
   return OK;
 }
 

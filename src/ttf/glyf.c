@@ -29,27 +29,41 @@ Result *GlyphParser_new(GlyphParser *self, TableDir *dir) {
   TRY(TableDir_findTable(dir, TableTag_Loca, &bs));
   TRY(LocaTable_parse(&self->loca, &bs, &self->head, &self->maxp));
 
-  TRY(TableDir_findTable(dir, TableTag_Hmtx, &bs));
-  TRY(HmtxTable_parse(&self->hmtx, &bs, &self->hhea, &self->maxp));
+  Result *ret = OK;
+  OK_OR_GOTO(LocaTable_free, ret, TableDir_findTable(dir, TableTag_Hmtx, &bs));
+  OK_OR_GOTO(LocaTable_free, ret, HmtxTable_parse(&self->hmtx, &bs, &self->hhea, &self->maxp));
 
-  TRY(TableDir_findTable(dir, TableTag_Cmap, &bs));
-  TRY(CmapTable_parse(&self->cmap, &bs));
+  OK_OR_GOTO(HmtxTable_free, ret, TableDir_findTable(dir, TableTag_Cmap, &bs));
+  OK_OR_GOTO(HmtxTable_free, ret, CmapTable_parse(&self->cmap, &bs));
 
-  TRY(TableDir_findTable(dir, TableTag_Glyf, &bs));
+  OK_OR_GOTO(CmapTable_free, ret, TableDir_findTable(dir, TableTag_Glyf, &bs));
+  ASSERT_ALLOC_OR_GOTO(CmapTable_free, ret, Glyph, self->maxp.numGlyphs, self->glyphs);
+
   Bitstream glyfBs;
-  self->glyphs = malloc(self->maxp.numGlyphs * sizeof(Glyph));
-
   for (u32 i = 0; i < self->maxp.numGlyphs; i++) {
     u32 offset = self->loca.offsets[i];
     if (self->loca.offsets[i + 1] - offset) {
-      TRY(Bitstream_slice(&glyfBs, &bs, offset, bs.size - offset));
-      TRY(GlyfTable_parse(&self->glyphs[i].header, &glyfBs));
+      OK_OR_GOTO(Glyph_free, ret, Bitstream_slice(&glyfBs, &bs, offset, bs.size - offset));
+      OK_OR_GOTO(Glyph_free, ret, GlyfTable_parse(&self->glyphs[i].header, &glyfBs));
     }
     else { memset(&self->glyphs[i].header, 0, sizeof(GlyfTable)); }
-    TRY(Glyph_parse(self, i), "Parsing glyph %u / %u", i, self->maxp.numGlyphs);
+    OK_OR_GOTO(Glyph_free, ret, Glyph_parse(self, i), "Parsing glyph %u / %u", i, self->maxp.numGlyphs);
   }
+  goto ret;
 
-  return OK;
+Glyph_free:
+  for (int i = 0; i < self->maxp.numGlyphs; i++) {
+    Glyph_free(&self->glyphs[i]);
+  }
+  free(self->glyphs);
+CmapTable_free:
+  CmapTable_free(&self->cmap);
+HmtxTable_free:
+  HmtxTable_free(&self->hmtx);
+LocaTable_free:
+  LocaTable_free(&self->loca);
+ret:
+  return ret;
 }
 
 Result *GlyphParser_getGlyph(GlyphParser *self, u16 c, Glyph *glyph) {

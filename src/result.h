@@ -55,6 +55,18 @@ extern Result RESULT_OK;
     }                                                                                                                  \
   }
 
+#define OK_OR(_expr, _ret, _result, ...)                                                                               \
+  {                                                                                                                    \
+    Result *_res = (_result);                                                                                          \
+    if (_res->err) {                                                                                                   \
+      _ret = ERR3(App, "Try failed. " __VA_ARGS__);                                                                    \
+      _ret->parent = _res;                                                                                             \
+      _expr;                                                                                                           \
+    }                                                                                                                  \
+  }
+
+#define OK_OR_GOTO(_label, _ret, _result, ...) OK_OR(goto _label, _ret, _result, __VA_ARGS__)
+
 bool Result_unwrap(Result *res);
 
 #define PANIC(...) Result_unwrap(ERR(__VA_ARGS__))
@@ -74,3 +86,9 @@ bool Result_unwrap(Result *res);
 
 #define ASSERT(_assertion, _format, ...)                                                                               \
   if (!(_assertion)) { return ERR("Assertion Failed. " _format, ##__VA_ARGS__); }
+
+#define ASSERT_OR_GOTO(_label, _ret, _assertion, _format, ...)                                                         \
+  if (!(_assertion)) {                                                                                                 \
+    _ret = ERR("Assertion Failed. " _format, ##__VA_ARGS__);                                                           \
+    goto _label;                                                                                                       \
+  }

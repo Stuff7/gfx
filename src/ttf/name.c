@@ -8,19 +8,24 @@ Result *NameTable_parse(NameTable *self, Bitstream *bs) {
   TRY(Bitstream_slice(&self->bs, bs, self->storageOffset, bs->size - self->storageOffset));
 
   ASSERT_ALLOC(NameRecord, self->count, self->nameRecord);
+  Result *ret = OK;
   for (int i = 0; i < self->count; i++) {
-    TRY(NameRecord_parse(&self->nameRecord[i], bs));
+    OK_OR_GOTO(NameTable_free, ret, NameRecord_parse(&self->nameRecord[i], bs));
   }
 
   if (self->version == 1) {
-    TRY(Bitstream_readU16(bs, &self->langTagCount));
-    ASSERT_ALLOC(LangTagRecord, self->langTagCount, self->langTagRecord);
+    OK_OR_GOTO(NameTable_free, ret, Bitstream_readU16(bs, &self->langTagCount));
+    ASSERT_ALLOC_OR_GOTO(NameTable_free, ret, LangTagRecord, self->langTagCount, self->langTagRecord);
     for (int i = 0; i < self->langTagCount; i++) {
-      TRY(LangTagRecord_parse(&self->langTagRecord[i], bs));
+      OK_OR_GOTO(NameTable_free, ret, LangTagRecord_parse(&self->langTagRecord[i], bs));
     }
   }
+  goto ret;
 
-  return OK;
+NameTable_free:
+  NameTable_free(self);
+ret:
+  return ret;
 }
 
 Result *NameRecord_parse(NameRecord *self, Bitstream *bs) {

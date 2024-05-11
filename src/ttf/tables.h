@@ -12,11 +12,18 @@ extern const u64 MAX_ALLOC_SIZE;
     _table = malloc(_size);                                                                                            \
   }
 
-#define FILL_BUF(_typ, _fnPostfix, _bs, _size, _buf)                                                                   \
+#define ASSERT_ALLOC_OR_GOTO(_label, _ret, _typ, _num, _table)                                                         \
+  {                                                                                                                    \
+    uint _size = _num * sizeof(_typ);                                                                                  \
+    ASSERT_OR_GOTO(_label, _ret, _size < MAX_ALLOC_SIZE, "%s is too large\n\tsize: %u", #_table, _size);               \
+    _table = malloc(_size);                                                                                            \
+  }
+
+#define FILL_BUF(_label, _ret, _typ, _fnPostfix, _bs, _size, _buf)                                                     \
   {                                                                                                                    \
     ASSERT_ALLOC(_typ, _size, _buf);                                                                                   \
     for (int i = 0; i < _size; i++) {                                                                                  \
-      TRY(Bitstream_read##_fnPostfix(_bs, &_buf[i]));                                                                  \
+      OK_OR_GOTO(_label, _ret, Bitstream_read##_fnPostfix(_bs, &_buf[i]));                                             \
     }                                                                                                                  \
   }
 

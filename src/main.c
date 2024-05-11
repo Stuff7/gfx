@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
   else if (streq(cmd, "gl")) {
     window.renderFps = argc > 2 && streq(argv[2], "fps");
     State state = State_new();
-    if (UNWRAP(State_createScene(&state, "Gfx"))) { State_free(&state); }
+    if (UNWRAP(State_createScene(&state, "Gfx"))) { return -1; }
     Window_run();
     State_free(&state);
   }

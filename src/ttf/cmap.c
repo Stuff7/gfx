@@ -170,16 +170,27 @@ Result *CmapSubtable_parse(CmapSubtable *self, Bitstream *bs) {
   TRY(Bitstream_readU16(bs, &self->entrySelector));
   TRY(Bitstream_readU16(bs, &self->rangeShift));
 
-  FILL_BUF(u16, U16, bs, self->segCount, self->endCode);
+  Result *ret = OK;
+  FILL_BUF(cleanEndCode, ret, u16, U16, bs, self->segCount, self->endCode);
   TRY(Bitstream_readU16(bs, &self->reservedPad));
   ASSERT(self->reservedPad == 0, "Unexpected cmap.reservedPad value\n\tExpected: 0\n\tReceived: %u", self->reservedPad);
 
-  FILL_BUF(u16, U16, bs, self->segCount, self->startCode);
-  FILL_BUF(i16, I16, bs, self->segCount, self->idDelta);
+  FILL_BUF(cleanStartCode, ret, u16, U16, bs, self->segCount, self->startCode);
+  FILL_BUF(cleanIdDelta, ret, i16, I16, bs, self->segCount, self->idDelta);
   TRY(Bitstream_slice(&self->glyphIdStream, bs, bs->i, bs->size - bs->i));
-  FILL_BUF(u16, U16, bs, self->segCount, self->idRangeOffsets);
+  FILL_BUF(cleanIdRangeOffsets, ret, u16, U16, bs, self->segCount, self->idRangeOffsets);
+  goto ret;
 
-  return OK;
+cleanIdRangeOffsets:
+  free(self->endCode);
+cleanIdDelta:
+  free(self->idDelta);
+cleanStartCode:
+  free(self->startCode);
+cleanEndCode:
+  free(self->idRangeOffsets);
+ret:
+  return ret;
 }
 
 void CmapSubtable_free(CmapSubtable *self) {
@@ -200,9 +211,16 @@ Result *CmapTable_parse(CmapTable *self, Bitstream *bs) {
   }
 
   int subtableOffset = 6490;
-  TRY(CmapTable_findOffset(self, &subtableOffset));
-  TRY(Bitstream_slice(bs, bs, subtableOffset, bs->size - subtableOffset));
-  return CmapSubtable_parse(&self->subtable, bs);
+  Result *ret = OK;
+  OK_OR_GOTO(cleanRecords, ret, CmapTable_findOffset(self, &subtableOffset));
+  OK_OR_GOTO(cleanRecords, ret, Bitstream_slice(bs, bs, subtableOffset, bs->size - subtableOffset));
+  OK_OR_GOTO(cleanRecords, ret, CmapSubtable_parse(&self->subtable, bs));
+  goto ret;
+
+cleanRecords:
+  free(self->encodingRecords);
+ret:
+  return ret;
 }
 
 Result *EncodingRecord_parse(EncodingRecord *self, Bitstream *bs) {

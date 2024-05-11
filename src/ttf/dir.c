@@ -3,6 +3,12 @@
 Result *TableDir_parse(TableDir *self, Bitstream *bs) {
   TRY(Bitstream_slice(&self->bs, bs, 0, bs->size));
   TRY(Bitstream_readU32(&self->bs, &self->sfntVersion));
+  ASSERT(
+      self->sfntVersion == 0x00010000 || self->sfntVersion == 0x4F54544F,
+      "Invalid sfnfVersion\n\tExpected: 0x00010000 | 0x4F54544F\n\tReceived: 0x%08X",
+      self->sfntVersion
+  );
+
   TRY(Bitstream_readU16(&self->bs, &self->numTables));
   TRY(Bitstream_readU16(&self->bs, &self->searchRange));
   TRY(Bitstream_readU16(&self->bs, &self->entrySelector));

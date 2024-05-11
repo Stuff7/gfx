@@ -141,44 +141,55 @@ Result *HheaTable_parse(HheaTable *self, Bitstream *bs) {
 }
 
 Result *LocaTable_parse(LocaTable *self, Bitstream *bs, const HeadTable *head, const MaxpTable *maxp) {
+  Result *ret = OK;
   self->size = maxp->numGlyphs + 1;
 
   if (head->indexToLocFormat == LocFormat_Short) {
     ASSERT_ALLOC(u32, self->size, self->offsets);
     for (u32 i = 0; i < self->size; i++) {
-      TRY(Bitstream_readU16(bs, (u16 *)(&self->offsets[i])));
+      OK_OR_GOTO(LocaTable_free, ret, Bitstream_readU16(bs, (u16 *)(&self->offsets[i])));
       self->offsets[i] *= 2;
     }
   }
   else {
     ASSERT_ALLOC(u32, self->size, self->offsets);
     for (u32 i = 0; i < self->size; i++) {
-      TRY(Bitstream_readU32(bs, &self->offsets[i]));
+      OK_OR_GOTO(LocaTable_free, ret, Bitstream_readU32(bs, &self->offsets[i]));
     }
   }
+  goto ret;
 
-  return OK;
+LocaTable_free:
+  LocaTable_free(self);
+ret:
+  return ret;
 }
 
 void LocaTable_free(LocaTable *self) { free(self->offsets); }
 
 Result *HmtxTable_parse(HmtxTable *self, Bitstream *bs, const HheaTable *hhea, const MaxpTable *maxp) {
-  self->hMetrics = malloc(hhea->numberOfHMetrics * sizeof(LongHorMetric));
+  Result *ret = OK;
+  self->leftSideBearingsSize = 0;
+  ASSERT_ALLOC(LongHorMetric, hhea->numberOfHMetrics, self->hMetrics);
   for (int i = 0; i < hhea->numberOfHMetrics; i++) {
     LongHorMetric *hMetric = &self->hMetrics[i];
-    TRY(Bitstream_readU16(bs, &hMetric->advanceWidth));
-    TRY(Bitstream_readI16(bs, &hMetric->lsb));
+    OK_OR_GOTO(HmtxTable_free, ret, Bitstream_readU16(bs, &hMetric->advanceWidth));
+    OK_OR_GOTO(HmtxTable_free, ret, Bitstream_readI16(bs, &hMetric->lsb));
   }
 
   self->leftSideBearingsSize = maxp->numGlyphs - hhea->numberOfHMetrics;
   if (self->leftSideBearingsSize > 0) {
     self->leftSideBearings = malloc(self->leftSideBearingsSize * sizeof(i16));
     for (u64 i = 0; i < self->leftSideBearingsSize; i++) {
-      TRY(Bitstream_readI16(bs, &self->leftSideBearings[i]));
+      OK_OR_GOTO(HmtxTable_free, ret, Bitstream_readI16(bs, &self->leftSideBearings[i]));
     }
   }
+  goto ret;
 
-  return OK;
+HmtxTable_free:
+  HmtxTable_free(self);
+ret:
+  return ret;
 }
 
 void HmtxTable_free(HmtxTable *self) {
