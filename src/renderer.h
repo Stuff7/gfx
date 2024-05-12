@@ -5,6 +5,7 @@
 #include "keyboard.h"
 #include "math.h"
 #include "result.h"
+#include "ttf/tables.h"
 #include <endian.h>
 #include <glad/glad.h>
 
@@ -92,6 +93,7 @@ void Buffer_data(Buffer *buf, int size, const void *data, bool dynamic);
 void Buffer_subData(Buffer *buf, int offset, int size, const void *data);
 void Buffer_free(Buffer *buf);
 
+void VAO_drawLineElements(int numIndices);
 void VAO_drawElements(int numIndex);
 void VAO_drawElementsInstanced(int numIndices, int numInstances);
 
@@ -100,6 +102,10 @@ typedef struct {
   uint len, size;
 } DataBuffer;
 
+void DataBuffer_set(DataBuffer *dbo, uint len, uint instanceSize, void *data);
+void DataBuffer_sliceSet(DataBuffer *dbo, uint offset, uint size, void *data);
+
+/* ---------------- Renderer ---------------- */
 typedef struct {
   uint vao;
   Buffer vbo, ibo;
@@ -107,10 +113,6 @@ typedef struct {
   uint indicesLen;
 } InstancedRenderer;
 
-void DataBuffer_set(DataBuffer *dbo, uint len, uint instanceSize, void *data);
-void DataBuffer_sliceSet(DataBuffer *dbo, uint offset, uint size, void *data);
-
-/* ---------------- Renderer ---------------- */
 InstancedRenderer InstancedRenderer_new(
     const void *vertices,
     uint verticesSize,
@@ -122,6 +124,18 @@ InstancedRenderer InstancedRenderer_new(
 );
 void InstancedRenderer_draw(InstancedRenderer *self);
 void InstancedRenderer_free(InstancedRenderer *self);
+
+typedef struct {
+  NormalizedGlyph glyph;
+  uint vao;
+  Buffer vbo, ibo;
+  uint indicesLen;
+} GlyphRenderer;
+
+GlyphRenderer
+GlyphRenderer_new(const void *vertices, uint verticesSize, const uint *indices, uint indicesSize, uint indicesLen);
+void GlyphRenderer_draw(GlyphRenderer *self);
+void GlyphRenderer_free(GlyphRenderer *self);
 
 /* ---------------- Camera ---------------- */
 typedef struct {

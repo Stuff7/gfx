@@ -1,7 +1,7 @@
-#include "game.h"
-#include "renderer.h"
-#include "result.h"
-#include "utils.h"
+#include "cubes.h"
+#include "../renderer.h"
+#include "../result.h"
+#include "../utils.h"
 
 #define SURF_SIZE 100
 static const uint CUBE_LEN = SURF_SIZE * SURF_SIZE;

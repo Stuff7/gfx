@@ -33,7 +33,7 @@ print_struct table
 
 print_struct glyph
 set $_glyph = (Glyph*)malloc(sizeof(Glyph))
-call GlyphParser_getGlyph(&glyph, 0x00C0, $_glyph)
+call GlyphParser_getGlyph(&glyph, 'E', $_glyph)
 print_struct $_glyph.header
 
 if $_glyph.header.numberOfContours >= 0
@@ -42,6 +42,14 @@ if $_glyph.header.numberOfContours >= 0
   print_ptr $_glyph.points $_glyph.numPoints
   print /t *$_glyph.flags@$_glyph.numPoints
   print_ptr $_glyph.endPtsOfContours $_glyph.header.numberOfContours
+
+  set $_normalGlyph = (NormalizedGlyph*)malloc(sizeof(NormalizedGlyph))
+  call Glyph_normalize($_normalGlyph, $_glyph, &glyph.head)
+  print_struct *$_normalGlyph
+  print_ptr $_normalGlyph.points $_normalGlyph.numPoints
+  print_ptr $_normalGlyph.endPtsOfContours $_normalGlyph.numberOfContours
+  call (void) NormalizedGlyph_free($_normalGlyph)
+  call (void) free($_normalGlyph)
 else
   printf "COMPOUND\n"
   print_ptr $_glyph.components $_glyph.numComponents

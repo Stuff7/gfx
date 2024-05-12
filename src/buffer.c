@@ -48,6 +48,8 @@ void Buffer_subData(Buffer *buf, int offset, int size, const void *data) {
 
 void Buffer_free(Buffer *buf) { glDeleteBuffers(1, &buf->name); }
 
+void VAO_drawLineElements(int numIndices) { glDrawElements(GL_LINES, numIndices, GL_UNSIGNED_INT, NULL); }
+
 void VAO_drawElements(int numIndices) { glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, NULL); }
 
 void VAO_drawElementsInstanced(int numIndices, int numInstances) {

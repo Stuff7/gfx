@@ -1,9 +1,8 @@
 #pragma once
 
-#include "defs.h"
-#include "renderer.h"
+#include "../defs.h"
+#include "../renderer.h"
 
-#define RAND(_min, _max) (f32) rand() / (f32)RAND_MAX *(_max - _min) + _min
 #define WIN_WIDTH 1000.f
 #define WIN_HEIGHT 600.f
 

@@ -197,6 +197,22 @@ typedef struct {
 } Glyph;
 
 typedef struct {
+  f32 x, y;
+  // bool onCurve;
+} NormalizedGlyphPoint;
+
+typedef struct {
+  u16 *endPtsOfContours;
+  u16 numPoints;
+  u16 numberOfContours;
+
+  NormalizedGlyphPoint *points;
+} NormalizedGlyph;
+
+Result *Glyph_normalize(NormalizedGlyph *self, Glyph *glyph, const HeadTable *header);
+void NormalizedGlyph_free(NormalizedGlyph *self);
+
+typedef struct {
   HeadTable head;
   MaxpTable maxp;
   HheaTable hhea;

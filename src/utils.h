@@ -4,6 +4,7 @@
 #include "result.h"
 #include <string.h>
 
+#define RAND(_min, _max) (f32) rand() / (f32)RAND_MAX *(_max - _min) + _min
 #define MASK(_flag, _mask) ((_flag) & (_mask))
 
 static inline bool streq(const char *a, const char *b) { return strcmp(a, b) == 0; }

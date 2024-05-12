@@ -1,11 +1,12 @@
-#include "game.h"
+#include "examples/cubes.h"
+#include "examples/render_glyphs.h"
 #include "renderer.h"
 #include "ttf/tables.h"
 #include "utils.h"
 
 int main(int argc, char **argv) {
   if (argc == 1) {
-    printf("Usage: %s <font|gl> <fontPath>|[fps]\n", argv[0]);
+    printf("Usage: %s <font|gl|glyphs> <fontPath>|[fps]|<fontPath>\n", argv[0]);
     return -1;
   }
   char *cmd = argv[1];
@@ -84,5 +85,15 @@ int main(int argc, char **argv) {
     if (UNWRAP(State_createScene(&state, "Gfx"))) { return -1; }
     Window_run();
     State_free(&state);
+  }
+  else if (streq(cmd, "glyphs")) {
+    if (argc < 3) {
+      printf("Missing font path\n");
+      return -1;
+    }
+    RenderGlyphsState state;
+    if (UNWRAP(RenderGlyphsState_createScene(&state, argv[2], "Glyphs"))) { return -1; }
+    Window_run();
+    RenderGlyphsState_free(&state);
   }
 }

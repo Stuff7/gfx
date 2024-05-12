@@ -84,6 +84,27 @@ void GlyphParser_free(GlyphParser *self) {
   free(self->glyphs);
 }
 
+Result *Glyph_normalize(NormalizedGlyph *self, Glyph *glyph, const HeadTable *header) {
+  if (glyph->header.numberOfContours < 0) { return OK; }
+  self->endPtsOfContours = glyph->endPtsOfContours;
+  self->numberOfContours = glyph->header.numberOfContours;
+  self->numPoints = glyph->numPoints;
+  ASSERT_ALLOC(NormalizedGlyphPoint, self->numPoints, self->points);
+
+  for (u16 i = 0; i < self->numPoints; i++) {
+    GlyphPoint *glyphPoint = &glyph->points[i];
+    NormalizedGlyphPoint *point = &self->points[i];
+
+    point->x = (f32)glyphPoint->x / (f32)header->unitsPerEm;
+    point->y = (f32)glyphPoint->y / (f32)header->unitsPerEm;
+    // point->onCurve = glyphPoint->onCurve;
+  }
+
+  return OK;
+}
+
+void NormalizedGlyph_free(NormalizedGlyph *self) { free(self->points); }
+
 Result *Glyph_parseSimplePoints(Glyph *self, bool isX) {
   u8 u8Mask = isX ? U8_X : U8_Y;
   u8 instructionMask = isX ? INSTRUCTION_X : INSTRUCTION_Y;
