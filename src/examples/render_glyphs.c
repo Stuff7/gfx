@@ -10,6 +10,10 @@ static void draw(RenderGlyphsState *state);
 static void resize(RenderGlyphsState *state, int width, int height);
 static void mouseInput(RenderGlyphsState *state, f64 width, f64 height);
 
+bool isPointInTriangle(NormalizedGlyphPoint a, NormalizedGlyphPoint b, NormalizedGlyphPoint c, NormalizedGlyphPoint p);
+bool isEar(NormalizedGlyphPoint *vertices, int n, int i, int *indices);
+void earClippingTriangulation(NormalizedGlyphPoint *vertices, int n, uint *outIndices);
+
 Result *RenderGlyphsState_createScene(RenderGlyphsState *state, const char *ttfPath, const char *windowTitle) {
   Camera_new(&state->camera, &state->view, (Vec3){.z = 3.0}, (Vec3){}, (Vec3){.y = 1.0});
   Transform_new(
@@ -43,17 +47,29 @@ Result *RenderGlyphsState_createScene(RenderGlyphsState *state, const char *ttfP
   OK_OR_GOTO(Bitstream_free, ret, TableDir_parse(&table, &state->bs));
   OK_OR_GOTO(Bitstream_free, ret, GlyphParser_new(&state->glyphParser, &table));
   Glyph glyph;
-  OK_OR_GOTO(GlyphParser_free, ret, GlyphParser_getGlyph(&state->glyphParser, 'E', &glyph));
+  OK_OR_GOTO(GlyphParser_free, ret, GlyphParser_getGlyph(&state->glyphParser, 0x266A, &glyph));
   OK_OR_GOTO(GlyphParser_free, ret, Glyph_normalize(&state->normalGlyph, &glyph, &state->glyphParser.head));
 
-  uint indices[] = {0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 0};
+  int numTriangles = (state->normalGlyph.numPoints - 2) * 3;
+  uint *indices = calloc(numTriangles, sizeof(uint));
+
+  earClippingTriangulation(state->normalGlyph.points, state->normalGlyph.numPoints, indices);
+
+  printf("indices = {\n");
+  for (int i = 0; i < numTriangles; i += 3) {
+    printf("\t{ %u, %u, %u },\n", indices[i], indices[i + 1], indices[i + 2]);
+  }
+  printf("}\n");
+
   state->renderer = GlyphRenderer_new(
       state->normalGlyph.points,
       state->normalGlyph.numPoints * sizeof(NormalizedGlyphPoint),
       indices,
-      sizeof(indices),
-      24
+      sizeof(uint) * numTriangles,
+      numTriangles
   );
+
+  free(indices);
 
   Shader_use(state->shader);
   Shader_uniformMat4(state->shader, "model", &state->model);

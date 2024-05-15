@@ -28,7 +28,7 @@ GlyphRenderer_new(const void *vertices, uint verticesSize, const uint *indices, 
   return self;
 }
 
-void GlyphRenderer_draw(GlyphRenderer *self) { VAO_drawLineElements(self->indicesLen); }
+void GlyphRenderer_draw(GlyphRenderer *self) { VAO_drawElements(self->indicesLen); }
 
 void GlyphRenderer_free(GlyphRenderer *self) {
   VAO_free(&self->vao);
