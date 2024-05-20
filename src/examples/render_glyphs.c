@@ -10,9 +10,9 @@ static void draw(RenderGlyphsState *state);
 static void resize(RenderGlyphsState *state, int width, int height);
 static void mouseInput(RenderGlyphsState *state, f64 width, f64 height);
 
-bool isPointInTriangle(NormalizedGlyphPoint a, NormalizedGlyphPoint b, NormalizedGlyphPoint c, NormalizedGlyphPoint p);
-bool isEar(NormalizedGlyphPoint *vertices, int n, int i, int *indices);
-void earClippingTriangulation(NormalizedGlyphPoint *vertices, int n, uint *outIndices);
+bool isEar(Vec2 *vertices, int n, int i, uint *indices);
+uint *earClippingTriangulation(Vec2 *vertices, uint numVertices, uint *numOutIndices);
+Vec2 *polybridge(Vec2 *points, u16 *pNumPoints, u16 *holeIndices, u16 numHoles);
 
 Result *RenderGlyphsState_createScene(RenderGlyphsState *state, const char *ttfPath, const char *windowTitle) {
   Camera_new(&state->camera, &state->view, (Vec3){.z = 3.0}, (Vec3){}, (Vec3){.y = 1.0});
@@ -40,33 +40,29 @@ Result *RenderGlyphsState_createScene(RenderGlyphsState *state, const char *ttfP
   OK_OR_GOTO(Window_free, ret, Shader_new(&state->shader, "shaders/glyph_vert.glsl", "shaders/glyph_frag.glsl"));
 
   Window_setCursor(state->cursor.x, state->cursor.y);
-  Window_captureCursor((state->cursor.capture = true));
+  Window_captureCursor((state->cursor.capture = false));
 
   OK_OR_GOTO(Window_free, ret, Bitstream_fromFile(&state->bs, ttfPath));
   TableDir table;
   OK_OR_GOTO(Bitstream_free, ret, TableDir_parse(&table, &state->bs));
   OK_OR_GOTO(Bitstream_free, ret, GlyphParser_new(&state->glyphParser, &table));
-  Glyph glyph;
-  OK_OR_GOTO(GlyphParser_free, ret, GlyphParser_getGlyph(&state->glyphParser, 0x266A, &glyph));
-  OK_OR_GOTO(GlyphParser_free, ret, Glyph_normalize(&state->normalGlyph, &glyph, &state->glyphParser.head));
-
-  int numTriangles = (state->normalGlyph.numPoints - 2) * 3;
-  uint *indices = calloc(numTriangles, sizeof(uint));
-
-  earClippingTriangulation(state->normalGlyph.points, state->normalGlyph.numPoints, indices);
-
-  printf("indices = {\n");
-  for (int i = 0; i < numTriangles; i += 3) {
-    printf("\t{ %u, %u, %u },\n", indices[i], indices[i + 1], indices[i + 2]);
-  }
-  printf("}\n");
+  OK_OR_GOTO(GlyphParser_free, ret, GlyphParser_getGlyph(&state->glyphParser, 0x0126, &state->glyph));
+  OK_OR_GOTO(GlyphParser_free, ret, Glyph_normalize(&state->normalGlyph, &state->glyph, &state->glyphParser.head));
+  state->normalGlyph.points = polybridge(
+      state->normalGlyph.points,
+      &state->normalGlyph.numPoints,
+      state->normalGlyph.endPtsOfContours,
+      state->normalGlyph.numberOfContours
+  );
+  uint numIndices;
+  uint *indices = earClippingTriangulation(state->normalGlyph.points, state->normalGlyph.numPoints, &numIndices);
 
   state->renderer = GlyphRenderer_new(
       state->normalGlyph.points,
-      state->normalGlyph.numPoints * sizeof(NormalizedGlyphPoint),
+      state->normalGlyph.numPoints * sizeof(Vec2),
       indices,
-      sizeof(uint) * numTriangles,
-      numTriangles
+      sizeof(uint) * numIndices,
+      numIndices
   );
 
   free(indices);
@@ -197,9 +193,23 @@ static void processInput(RenderGlyphsState *state, Key key, KeyState keyState) {
       Camera_updateMatrix(&state->camera);
       return;
     case Key_P:
-      for (u16 i = 0; i < state->normalGlyph.numPoints; i++) {
-        printf("%f, %f\n", state->normalGlyph.points[i].x, state->normalGlyph.points[i].y);
+      printf("glyphs[%u] = {\n", state->glyph.numPoints);
+      uint endPtsIdx = 0;
+      for (u16 i = 0; i < state->glyph.numPoints; i++) {
+        printf(
+            "[%03u]  { %6d, %6d }\t{ %10f, %10f }\n",
+            i,
+            state->glyph.points[i].x,
+            state->glyph.points[i].y,
+            state->normalGlyph.points[i].x,
+            state->normalGlyph.points[i].y
+        );
+        if (endPtsIdx < state->normalGlyph.numberOfContours && i == state->glyph.endPtsOfContours[endPtsIdx]) {
+          endPtsIdx++;
+          printf("\n");
+        }
       }
+      printf("}\n");
       LOG("CURSOR: %.2f\t%.2f\n", state->cursor.x, state->cursor.y);
       return;
     case Key_Kp_0:

@@ -4,14 +4,10 @@
 #include <GL/gl.h>
 #include <stdlib.h>
 
-static Result *compile(unsigned int *shader, int type, const char *path) {
-  char *src;
-  TRY(readString(path, &src));
-
+static Result *compileFromString(unsigned int *shader, int type, const char *src) {
   *shader = glCreateShader(type);
   glShaderSource(*shader, 1, (const char **)&src, NULL);
   glCompileShader(*shader);
-  free(src);
 
   int success;
   glGetShaderiv(*shader, GL_COMPILE_STATUS, &success);
@@ -26,11 +22,16 @@ static Result *compile(unsigned int *shader, int type, const char *path) {
   return OK;
 }
 
-Result *Shader_new(uint *shader, const char *vertPath, const char *fragPath) {
-  uint vert, frag;
-  TRY(compile(&frag, GL_VERTEX_SHADER, vertPath));
-  TRY(compile(&vert, GL_FRAGMENT_SHADER, fragPath));
+static Result *compile(unsigned int *shader, int type, const char *path) {
+  char *src;
+  TRY(readString(path, &src));
+  TRY(compileFromString(shader, type, src));
+  free(src);
 
+  return OK;
+}
+
+Result *createShader(uint *shader, uint vert, uint frag) {
   *shader = glCreateProgram();
 
   glAttachShader(*shader, vert);
@@ -57,6 +58,20 @@ Result *Shader_new(uint *shader, const char *vertPath, const char *fragPath) {
   glDeleteShader(frag);
 
   return OK;
+}
+
+Result *Shader_fromStrings(uint *shader, const char *vertSrc, const char *fragSrc) {
+  uint vert, frag;
+  TRY(compileFromString(&frag, GL_VERTEX_SHADER, vertSrc));
+  TRY(compileFromString(&vert, GL_FRAGMENT_SHADER, fragSrc));
+  return createShader(shader, vert, frag);
+}
+
+Result *Shader_new(uint *shader, const char *vertPath, const char *fragPath) {
+  uint vert, frag;
+  TRY(compile(&frag, GL_VERTEX_SHADER, vertPath));
+  TRY(compile(&vert, GL_FRAGMENT_SHADER, fragPath));
+  return createShader(shader, vert, frag);
 }
 
 void Shader_use(uint shader) { glUseProgram(shader); }

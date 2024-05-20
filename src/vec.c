@@ -1,5 +1,41 @@
 #include "math.h"
 
+void Vec_sub(uint numVertices, const f32 *a, const f32 *b, f32 *out) {
+  for (uint i = 0; i < numVertices; i++) {
+    out[i] = a[i] - b[i];
+  }
+}
+
+f32 Vec2_cross(Vec2 a, Vec2 b) { return (a.x * b.y) - (b.x * a.y); }
+
+f64 Vec2_distanceSquared(Vec2 a, Vec2 b) {
+  f64 dx = a.x - b.x;
+  f64 dy = a.y - b.y;
+
+  return dx * dx + dy * dy;
+}
+
+bool Triangle_isPointInside(const Triangle *self, Vec2 p) {
+  Vec2 aV, bV, cV;
+  Vec_sub(2, p.data, self->a.data, aV.data);
+  Vec_sub(2, p.data, self->b.data, bV.data);
+  Vec_sub(2, p.data, self->c.data, cV.data);
+
+  f32 area1 = Vec2_cross(aV, bV);
+  f32 area2 = Vec2_cross(bV, cV);
+  f32 area3 = Vec2_cross(cV, aV);
+
+  return (area1 > 0 && area2 > 0 && area3 > 0) || (area1 < 0 && area2 < 0 && area3 < 0);
+}
+
+f32 Triangle_area(const Triangle *self) {
+  Vec2 aV, bV;
+  Vec_sub(2, self->b.data, self->a.data, aV.data);
+  Vec_sub(2, self->c.data, self->a.data, bV.data);
+
+  return Vec2_cross(aV, bV);
+}
+
 Vec4 Vec4_new(f32 x, f32 y, f32 z, f32 w) {
   return (Vec4){
       {x, y, z, w}

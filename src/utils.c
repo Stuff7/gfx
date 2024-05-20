@@ -1,4 +1,5 @@
 #include "utils.h"
+#include <string.h>
 #include <time.h>
 
 #define MAX_UTF8_CHAR_SIZE 4
@@ -19,6 +20,66 @@ bool Result_unwrap(Result *res) {
   }
 
   return isErr;
+}
+
+char *stringReplace(char *src, const char *pattern, const char *repl) {
+  u64 i = 0;
+  u64 srcLen = strlen(src);
+  u64 srcCap = srcLen;
+  u64 replLen = strlen(repl);
+
+  while (src[i] != '\0') {
+    if (src[i] != pattern[0]) {
+      i++;
+      continue;
+    }
+
+    int j = 1;
+    bool isMatch = false;
+    int diff = 0;
+
+    while (src[i + j] != '\0') {
+      if (src[i + j] == pattern[j]) {
+        j++;
+        continue;
+      }
+      else if (pattern[j] == '\0') {
+        isMatch = true;
+        diff = replLen - j;
+        break;
+      }
+      else { break; }
+    }
+
+    i += j;
+
+    if (!isMatch) { continue; }
+
+    if (diff < 0) {
+      u64 k = 0;
+      for (k = i; src[k] != '\0'; k++) {
+        src[k + diff] = src[k];
+      }
+      srcLen = k + diff + 1;
+    }
+    else if (diff > 0) {
+      if (srcLen + replLen > srcCap) {
+        srcCap += replLen * 16;
+        srcLen += replLen;
+        src = realloc(src, srcCap);
+      }
+      for (u64 k = srcLen - 1; k > i; k--) {
+        src[k] = src[k - diff];
+      }
+    }
+
+    src[srcLen - 1] = '\0';
+    memcpy(src + i - j, repl, replLen);
+  }
+
+  if (srcLen < srcCap) { src = realloc(src, srcLen); }
+
+  return src;
 }
 
 char *getFormattedTime(void) {

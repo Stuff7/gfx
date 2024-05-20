@@ -14,16 +14,7 @@ GlyphRenderer_new(const void *vertices, uint verticesSize, const uint *indices, 
   self.ibo = Buffer_new(BufferType_Element);
   self.indicesLen = indicesLen;
   Buffer_data(&self.ibo, indicesSize, indices, false);
-  VAO_attrib(
-      self.vao,
-      &self.vbo,
-      0,
-      2,
-      AttribType_Float,
-      false,
-      sizeof(NormalizedGlyphPoint),
-      offsetof(NormalizedGlyphPoint, x)
-  );
+  VAO_attrib(self.vao, &self.vbo, 0, 2, AttribType_Float, false, sizeof(Vec2), offsetof(Vec2, x));
 
   return self;
 }

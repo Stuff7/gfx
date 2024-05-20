@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../math.h"
 #include "types.h"
 #include "utils.h"
 
@@ -197,16 +198,12 @@ typedef struct {
 } Glyph;
 
 typedef struct {
-  f32 x, y;
-  // bool onCurve;
-} NormalizedGlyphPoint;
-
-typedef struct {
   u16 *endPtsOfContours;
   u16 numPoints;
   u16 numberOfContours;
 
-  NormalizedGlyphPoint *points;
+  Vec2 *points;
+  bool *curves;
 } NormalizedGlyph;
 
 Result *Glyph_normalize(NormalizedGlyph *self, Glyph *glyph, const HeadTable *header);

@@ -15,6 +15,7 @@ typedef struct {
   Mat4 model;
   Transform transform;
   uint idx;
+  Glyph glyph;
   NormalizedGlyph normalGlyph;
   GlyphParser glyphParser;
   Bitstream bs;

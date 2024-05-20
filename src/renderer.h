@@ -49,6 +49,7 @@ void Window_free();
 
 /* ---------------- Shader ---------------- */
 Result *Shader_new(uint *shader, const char *vert, const char *frag);
+Result *Shader_fromStrings(uint *shader, const char *vertSrc, const char *fragSrc);
 void Shader_use(uint shader);
 void Shader_free(uint shader);
 

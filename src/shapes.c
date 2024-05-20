@@ -1,5 +1,14 @@
 #include "math.h"
 
+Quad Quad_box(f32 minX, f32 minY, f32 maxX, f32 maxY) {
+  return (Quad){
+      {{minX, maxY, .0f}},
+      {{maxX, maxY, .0f}},
+      {{maxX, minY, .0f}},
+      {{minX, minY, .0f}},
+  };
+}
+
 Quad Quad_new(f32 w, f32 h) {
   w *= 0.5f;
   h *= 0.5f;

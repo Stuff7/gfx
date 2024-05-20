@@ -12,10 +12,19 @@
 
 typedef union {
   struct {
+    f32 x, y;
+  };
+
+  f32 data[2];
+} Vec2;
+
+typedef union {
+  struct {
     f32 x, y, z;
   };
 
   f32 data[3];
+  Vec2 xy;
 } Vec3;
 
 typedef union {
@@ -24,8 +33,13 @@ typedef union {
   };
 
   f32 data[4];
+  Vec2 xy;
   Vec3 xyz;
 } Vec4;
+
+typedef struct {
+  Vec2 a, b, c;
+} Triangle;
 
 typedef union {
   struct {
@@ -73,10 +87,19 @@ void Transform_new(Transform *self, Mat4 *matrix, Vec3 position, Vec3 scale, Vec
 #define QUAD_IDX_LEN 6
 void Color_set(Color *c, u8 r, u8 g, u8 b);
 Quad Quad_new(f32 w, f32 h);
+Quad Quad_box(f32 minX, f32 minY, f32 maxX, f32 maxY);
 void Quad_indices(uint *indices);
 #define CUBE_IDX_LEN 36
 Cube Cube_new(f32 width, f32 height, f32 depth);
 void Cube_indices(uint *indices);
+
+void Vec_sub(uint numVertices, const f32 *a, const f32 *b, f32 *out);
+
+f32 Vec2_cross(Vec2 a, Vec2 b);
+f64 Vec2_distanceSquared(Vec2 a, Vec2 b);
+
+bool Triangle_isPointInside(const Triangle *self, Vec2 p);
+f32 Triangle_area(const Triangle *self);
 
 Vec4 Vec4_new(f32 x, f32 y, f32 z, f32 w);
 Vec4 Vec4_normalize(Vec4 v);

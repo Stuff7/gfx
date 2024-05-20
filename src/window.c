@@ -5,9 +5,15 @@
 
 #define GLFW_LOG(_format, ...) LOG3(_format, 225, "GLFW", ##__VA_ARGS__)
 
+static bool RENDER_WIREFRAME = false;
+
 static void cursor_callback(UNUSED(GLFWwindow *) _1, f64 x, f64 y) { window.cursor(window.context, x, y); }
 
 static void input_callback(UNUSED(GLFWwindow *) _1, int key, UNUSED(int) _2, int action, UNUSED(int) _3) {
+  if (action == KeyState_Release && key == Key_F1) {
+    if ((RENDER_WIREFRAME = !RENDER_WIREFRAME)) { glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); }
+    else { glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
+  }
   window.input(window.context, key, action);
 }
 

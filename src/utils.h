@@ -9,6 +9,8 @@
 
 static inline bool streq(const char *a, const char *b) { return strcmp(a, b) == 0; }
 
+char *stringReplace(char *src, const char *pattern, const char *repl);
+
 Result *readFile(const char *path, const char *modes, u8 **bytes, u64 *size);
 Result *readString(const char *path, char **out);
 
