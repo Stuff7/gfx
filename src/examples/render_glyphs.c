@@ -11,8 +11,9 @@ static void resize(RenderGlyphsState *state, int width, int height);
 static void mouseInput(RenderGlyphsState *state, f64 width, f64 height);
 
 bool isEar(Vec2 *vertices, int n, int i, uint *indices);
-uint *earClippingTriangulation(Vec2 *vertices, uint numVertices, uint *numOutIndices);
-Vec2 *polybridge(Vec2 *points, u16 *pNumPoints, u16 *holeIndices, u16 numHoles);
+uint *polybridge(const NormalizedGlyph *glyph, uint *numIndices);
+
+uint *earClippingTriangulation(const NormalizedGlyph *glyph, uint *numOutIndices);
 
 Result *RenderGlyphsState_createScene(RenderGlyphsState *state, const char *ttfPath, const char *windowTitle) {
   Camera_new(&state->camera, &state->view, (Vec3){.z = 3.0}, (Vec3){}, (Vec3){.y = 1.0});
@@ -48,14 +49,9 @@ Result *RenderGlyphsState_createScene(RenderGlyphsState *state, const char *ttfP
   OK_OR_GOTO(Bitstream_free, ret, GlyphParser_new(&state->glyphParser, &table));
   OK_OR_GOTO(GlyphParser_free, ret, GlyphParser_getGlyph(&state->glyphParser, 0x0126, &state->glyph));
   OK_OR_GOTO(GlyphParser_free, ret, Glyph_normalize(&state->normalGlyph, &state->glyph, &state->glyphParser.head));
-  state->normalGlyph.points = polybridge(
-      state->normalGlyph.points,
-      &state->normalGlyph.numPoints,
-      state->normalGlyph.endPtsOfContours,
-      state->normalGlyph.numberOfContours
-  );
+
   uint numIndices;
-  uint *indices = earClippingTriangulation(state->normalGlyph.points, state->normalGlyph.numPoints, &numIndices);
+  uint *indices = earClippingTriangulation(&state->normalGlyph, &numIndices);
 
   state->renderer = GlyphRenderer_new(
       state->normalGlyph.points,

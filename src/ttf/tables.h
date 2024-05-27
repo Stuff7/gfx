@@ -200,7 +200,7 @@ typedef struct {
 typedef struct {
   u16 *endPtsOfContours;
   u16 numPoints;
-  u16 numberOfContours;
+  uint numberOfContours;
 
   Vec2 *points;
   bool *curves;

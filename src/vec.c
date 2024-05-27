@@ -6,7 +6,14 @@ void Vec_sub(uint numVertices, const f32 *a, const f32 *b, f32 *out) {
   }
 }
 
-f32 Vec2_cross(Vec2 a, Vec2 b) { return (a.x * b.y) - (b.x * a.y); }
+bool Vec_eq(uint numVertices, const f32 *a, const f32 *b) {
+  for (uint i = 0; i < numVertices; i++) {
+    if (a[i] != b[i]) { return false; }
+  }
+  return true;
+}
+
+f32 Vec2_cross(Vec2 a, Vec2 b, Vec2 c) { return (a.x - b.x) * (a.y - c.y) - (a.x - c.x) * (a.y - b.y); }
 
 f64 Vec2_distanceSquared(Vec2 a, Vec2 b) {
   f64 dx = a.x - b.x;
@@ -15,26 +22,30 @@ f64 Vec2_distanceSquared(Vec2 a, Vec2 b) {
   return dx * dx + dy * dy;
 }
 
-bool Triangle_isPointInside(const Triangle *self, Vec2 p) {
-  Vec2 aV, bV, cV;
-  Vec_sub(2, p.data, self->a.data, aV.data);
-  Vec_sub(2, p.data, self->b.data, bV.data);
-  Vec_sub(2, p.data, self->c.data, cV.data);
+uint Vec2_closest(Vec2 self, const Vec2 *points, uint numPoints) {
+  uint closest = 0;
+  f64 minDistance = Vec2_distanceSquared(self, points[closest]);
 
-  f32 area1 = Vec2_cross(aV, bV);
-  f32 area2 = Vec2_cross(bV, cV);
-  f32 area3 = Vec2_cross(cV, aV);
+  for (u16 i = 1; i < numPoints; i++) {
+    f64 distance = Vec2_distanceSquared(self, points[i]);
+    if (distance < minDistance) {
+      minDistance = distance;
+      closest = i;
+    }
+  }
+
+  return closest;
+}
+
+bool Triangle_isPointInside(const Triangle *self, Vec2 p) {
+  f32 area1 = Vec2_cross(p, self->a, self->b);
+  f32 area2 = Vec2_cross(p, self->b, self->c);
+  f32 area3 = Vec2_cross(p, self->c, self->a);
 
   return (area1 > 0 && area2 > 0 && area3 > 0) || (area1 < 0 && area2 < 0 && area3 < 0);
 }
 
-f32 Triangle_area(const Triangle *self) {
-  Vec2 aV, bV;
-  Vec_sub(2, self->b.data, self->a.data, aV.data);
-  Vec_sub(2, self->c.data, self->a.data, bV.data);
-
-  return Vec2_cross(aV, bV);
-}
+f32 Triangle_area(const Triangle *self) { return Vec2_cross(self->a, self->b, self->c); }
 
 Vec4 Vec4_new(f32 x, f32 y, f32 z, f32 w) {
   return (Vec4){

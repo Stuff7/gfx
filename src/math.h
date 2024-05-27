@@ -94,9 +94,11 @@ Cube Cube_new(f32 width, f32 height, f32 depth);
 void Cube_indices(uint *indices);
 
 void Vec_sub(uint numVertices, const f32 *a, const f32 *b, f32 *out);
+bool Vec_eq(uint numVertices, const f32 *a, const f32 *b);
 
-f32 Vec2_cross(Vec2 a, Vec2 b);
+f32 Vec2_cross(Vec2 a, Vec2 b, Vec2 c);
 f64 Vec2_distanceSquared(Vec2 a, Vec2 b);
+uint Vec2_closest(Vec2 self, const Vec2 *points, uint numPoints);
 
 bool Triangle_isPointInside(const Triangle *self, Vec2 p);
 f32 Triangle_area(const Triangle *self);

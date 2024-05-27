@@ -13,7 +13,7 @@ set logging overwrite on
 set logging enabled on
 show args
 
-break /main.c:63
+break /main.c:23
 
 run
 
@@ -29,11 +29,11 @@ define print_ptr
   end
 end
 
-print_struct table
+print_struct font.table
 
-print_struct glyph
+print_struct font.glyph
 set $_glyph = (Glyph*)malloc(sizeof(Glyph))
-call GlyphParser_getGlyph(&glyph, 'E', $_glyph)
+call GlyphParser_getGlyph(&font.glyph, 'E', $_glyph)
 print_struct $_glyph.header
 
 if $_glyph.header.numberOfContours >= 0
@@ -44,7 +44,7 @@ if $_glyph.header.numberOfContours >= 0
   print_ptr $_glyph.endPtsOfContours $_glyph.header.numberOfContours
 
   set $_normalGlyph = (NormalizedGlyph*)malloc(sizeof(NormalizedGlyph))
-  call Glyph_normalize($_normalGlyph, $_glyph, &glyph.head)
+  call Glyph_normalize($_normalGlyph, $_glyph, &font.glyph.head)
   print_struct *$_normalGlyph
   print_ptr $_normalGlyph.points $_normalGlyph.numPoints
   print_ptr $_normalGlyph.endPtsOfContours $_normalGlyph.numberOfContours
@@ -56,7 +56,7 @@ else
 end
 call (void) free($_glyph)
 
-print_ptr glyph.cmap.encodingRecords glyph.cmap.numTables
+print_ptr font.glyph.cmap.encodingRecords font.glyph.cmap.numTables
 
 # print_struct gdef
 # print_struct gpos
@@ -84,4 +84,4 @@ print_ptr glyph.cmap.encodingRecords glyph.cmap.numTables
 
 # print_struct name
 # print_ptr name.nameRecord name.count
-print_ptr strings name.count
+print_ptr font.strings font.name.count
