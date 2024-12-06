@@ -5,6 +5,7 @@
 .gdb_history
 gdb.txt
 
+/cmake_build
 **/**/*.a
 **/**/CMakeFiles
 **/**/cmake_install.cmake
